@@ -2361,11 +2361,11 @@ class Position:
     cash_pnl: float
     percent_pnl: float
     total_bought: float
-    realized_pnl: Optional[float] = None
-    percent_realized_pnl: Optional[float] = None
     cur_price: float
     redeemable: bool
     mergeable: bool
+    realized_pnl: Optional[float] = None
+    percent_realized_pnl: Optional[float] = None
     title: Optional[str] = None
     slug: Optional[str] = None
     icon: Optional[str] = None
@@ -2391,11 +2391,11 @@ class Position:
             cash_pnl=float(payload.get("cashPnl", 0.0)),
             percent_pnl=float(payload.get("percentPnl", 0.0)),
             total_bought=float(payload.get("totalBought", 0.0)),
-            realized_pnl=float(payload.get("realizedPnl", 0.0)) if payload.get("realizedPnl") is not None else None,
-            percent_realized_pnl=float(payload.get("percentRealizedPnl", 0.0)) if payload.get("percentRealizedPnl") is not None else None,
             cur_price=float(payload.get("curPrice", 0.0)),
             redeemable=bool(payload.get("redeemable", False)),
             mergeable=bool(payload.get("mergeable", False)),
+            realized_pnl=float(payload.get("realizedPnl", 0.0)) if payload.get("realizedPnl") is not None else None,
+            percent_realized_pnl=float(payload.get("percentRealizedPnl", 0.0)) if payload.get("percentRealizedPnl") is not None else None,
             title=payload.get("title"),
             slug=payload.get("slug"),
             icon=payload.get("icon"),
