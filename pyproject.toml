@@ -1,0 +1,23 @@
+[project]
+name = "polymarket-client"
+version = "0.1.0"
+description = "A well-typed Python client for the Polymarket API"
+authors = [
+    { name = "oxdefiprof", email = "85069769+ibold-dev@users.noreply.github.com" },
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "py-clob-client>=0.1.0",
+    "httpx>=0.25.0",
+    "eth-account>=0.8.0",
+    "web3>=6.0.0",
+    "websocket-client>=1.6.0",
+]
+
+[tool.poetry]
+packages = [{ include = "polymarket_client", from = "src" }]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
