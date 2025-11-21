@@ -1,0 +1,160 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Poetry
+# Note: poetry.lock should be committed for reproducible builds
+# Uncomment the line below if you want to ignore poetry.lock
+# poetry.lock
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Ruff
+.ruff_cache/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.env.local
+.env.*.local
+.venv
+
+# IDEs
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Project specific
+logs/
+*.log
+tmp/
+temp/
+*.tmp
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+.dockerignore
+
+# Secrets and keys
+*.pem
+*.key
+*.crt
+secrets/
+*.secret
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Alembic
+# Keep migrations but ignore backup files
+*.pyc.bak
+
+# Test artifacts
+.pytest_cache/
+test-results/
+test-reports/
+
+# Build artifacts
+*.whl
+*.tar.gz
+
+# Local configuration
+.env.local
+config.local.*
+*.local
+
+# Coverage reports
+coverage/
+.coveragerc
+.coverage.*
+
+# Profiling
+*.prof
+
+# Temporary files
+*.swp
+*.swo
+*~
+.#*
+
+# Application specific
+data/
+backups/
+*.backup
+
