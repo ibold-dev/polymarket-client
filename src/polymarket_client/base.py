@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -33,14 +33,14 @@ class BaseMarket:
     """
 
     id: str
-    question: Optional[str]  # API can return null for question
+    question: str | None  # API can return null for question
     active: bool
     closed: bool
     volume: float
     liquidity: float
 
     @staticmethod
-    def from_payload(payload: Any) -> "BaseMarket":
+    def from_payload(payload: Any) -> BaseMarket:
         """Parse market data from API payload.
 
         Args:
@@ -66,10 +66,10 @@ class BaseOrder:
     size: float
     filled: float
     status: str
-    created_at: Optional[datetime] = None
+    created_at: datetime | None = None
 
     @staticmethod
-    def from_payload(payload: Any) -> "BaseOrder":
+    def from_payload(payload: Any) -> BaseOrder:
         """Parse order data from API payload.
 
         Args:
@@ -96,7 +96,7 @@ class OrderRequest:
     price: float
     size: float
     order_type: str = "GTC"  # "FOK", "FAK", "GTC", or "GTD"
-    expiration: Optional[int] = None  # Unix timestamp (required for GTD orders)
+    expiration: int | None = None  # Unix timestamp (required for GTD orders)
     
     def __post_init__(self) -> None:
         """Validate order request parameters."""
@@ -156,7 +156,7 @@ class BaseMarketClient(ABC):
         raise NotImplementedError("Subclasses must implement get_markets")
 
     @abstractmethod
-    def get_market(self, market_id: str) -> Optional[BaseMarket]:
+    def get_market(self, market_id: str) -> BaseMarket | None:
         """Fetch a specific market by ID.
 
         Args:
@@ -214,7 +214,7 @@ class BaseMarketClient(ABC):
         """
         raise NotImplementedError("Write operations not supported by this client")
 
-    def get_orders(self, market_id: Optional[str] = None) -> list[BaseOrder]:
+    def get_orders(self, market_id: str | None = None) -> list[BaseOrder]:
         """Fetch user's orders.
 
         Args:
@@ -235,7 +235,7 @@ class BaseMarketClient(ABC):
         """
         pass
 
-    def __enter__(self) -> "BaseMarketClient":
+    def __enter__(self) -> BaseMarketClient:
         """Context manager entry."""
         return self
 

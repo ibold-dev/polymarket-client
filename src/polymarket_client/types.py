@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from .base import BaseMarket, BaseOrderBook, BaseOrderBookLevel
 
@@ -16,33 +16,33 @@ class GetMarketsParams:
     Reference: https://docs.polymarket.com/developers/gamma-markets-api/get-markets
     """
     
-    limit: Optional[int] = None
-    offset: Optional[int] = None
-    order: Optional[str] = None  # Comma-separated list of fields to order by
-    ascending: Optional[bool] = None
-    id: Optional[list[int]] = None
-    slug: Optional[list[str]] = None
-    clob_token_ids: Optional[list[str]] = None
-    condition_ids: Optional[list[str]] = None
-    market_maker_address: Optional[list[str]] = None
-    liquidity_num_min: Optional[float] = None
-    liquidity_num_max: Optional[float] = None
-    volume_num_min: Optional[float] = None
-    volume_num_max: Optional[float] = None
-    start_date_min: Optional[datetime] = None
-    start_date_max: Optional[datetime] = None
-    end_date_min: Optional[datetime] = None
-    end_date_max: Optional[datetime] = None
-    tag_id: Optional[int] = None
-    related_tags: Optional[bool] = None
-    cyom: Optional[bool] = None
-    uma_resolution_status: Optional[str] = None
-    game_id: Optional[str] = None
-    sports_market_types: Optional[list[str]] = None
-    rewards_min_size: Optional[float] = None
-    question_ids: Optional[list[str]] = None
-    include_tag: Optional[bool] = None
-    closed: Optional[bool] = None
+    limit: int | None = None
+    offset: int | None = None
+    order: str | None = None  # Comma-separated list of fields to order by
+    ascending: bool | None = None
+    id: list[int] | None = None
+    slug: list[str] | None = None
+    clob_token_ids: list[str] | None = None
+    condition_ids: list[str] | None = None
+    market_maker_address: list[str] | None = None
+    liquidity_num_min: float | None = None
+    liquidity_num_max: float | None = None
+    volume_num_min: float | None = None
+    volume_num_max: float | None = None
+    start_date_min: datetime | None = None
+    start_date_max: datetime | None = None
+    end_date_min: datetime | None = None
+    end_date_max: datetime | None = None
+    tag_id: int | None = None
+    related_tags: bool | None = None
+    cyom: bool | None = None
+    uma_resolution_status: str | None = None
+    game_id: str | None = None
+    sports_market_types: list[str] | None = None
+    rewards_min_size: float | None = None
+    question_ids: list[str] | None = None
+    include_tag: bool | None = None
+    closed: bool | None = None
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -116,13 +116,13 @@ class ImageOptimized:
     image_size_kb_source: float
     image_size_kb_optimized: float
     image_optimized_complete: bool
-    image_optimized_last_updated: Optional[str]
-    rel_id: Optional[int]
-    field: Optional[str]
-    relname: Optional[str]
+    image_optimized_last_updated: str | None
+    rel_id: int | None
+    field: str | None
+    relname: str | None
 
     @staticmethod
-    def from_payload(payload: dict[str, Any] | None) -> Optional["ImageOptimized"]:
+    def from_payload(payload: dict[str, Any] | None) -> ImageOptimized | None:
         """Parse image optimized data from payload."""
         if payload is None:
             return None
@@ -147,18 +147,18 @@ class Category:
 
     id: str
     label: str
-    parent_category: Optional[str]
+    parent_category: str | None
     slug: str
-    published_at: Optional[str]
-    created_by: Optional[str]
-    updated_by: Optional[str]
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
+    published_at: str | None
+    created_by: str | None
+    updated_by: str | None
+    created_at: datetime | None
+    updated_at: datetime | None
 
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "Category":
+    def from_payload(payload: dict[str, Any]) -> Category:
         """Parse category data from payload."""
-        def parse_datetime(dt_str: str | None) -> Optional[datetime]:
+        def parse_datetime(dt_str: str | None) -> datetime | None:
             if dt_str is None:
                 return None
             try:
@@ -186,19 +186,19 @@ class Tag:
     id: str
     label: str
     slug: str
-    force_show: Optional[bool]
-    published_at: Optional[str]
-    created_by: Optional[int]
-    updated_by: Optional[int]
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
-    force_hide: Optional[bool]
-    is_carousel: Optional[bool]
+    force_show: bool | None
+    published_at: str | None
+    created_by: int | None
+    updated_by: int | None
+    created_at: datetime | None
+    updated_at: datetime | None
+    force_hide: bool | None
+    is_carousel: bool | None
 
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "Tag":
+    def from_payload(payload: dict[str, Any]) -> Tag:
         """Parse tag data from payload."""
-        def parse_datetime(dt_str: str | None) -> Optional[datetime]:
+        def parse_datetime(dt_str: str | None) -> datetime | None:
             if dt_str is None:
                 return None
             try:
@@ -229,14 +229,14 @@ class Event:
     ticker: str
     slug: str
     title: str
-    subtitle: Optional[str]
-    description: Optional[str]
-    resolution_source: Optional[str]
-    start_date: Optional[datetime]
-    creation_date: Optional[datetime]
-    end_date: Optional[datetime]
-    image: Optional[str]
-    icon: Optional[str]
+    subtitle: str | None
+    description: str | None
+    resolution_source: str | None
+    start_date: datetime | None
+    creation_date: datetime | None
+    end_date: datetime | None
+    image: str | None
+    icon: str | None
     active: bool
     closed: bool
     archived: bool
@@ -245,25 +245,25 @@ class Event:
     restricted: bool
     liquidity: float
     volume: float
-    open_interest: Optional[float]
-    category: Optional[str]
-    subcategory: Optional[str]
-    volume_24hr: Optional[float]
-    volume_1wk: Optional[float]
-    volume_1mo: Optional[float]
-    volume_1yr: Optional[float]
-    competitive: Optional[float]
-    image_optimized: Optional[ImageOptimized]
-    icon_optimized: Optional[ImageOptimized]
+    open_interest: float | None
+    category: str | None
+    subcategory: str | None
+    volume_24hr: float | None
+    volume_1wk: float | None
+    volume_1mo: float | None
+    volume_1yr: float | None
+    competitive: float | None
+    image_optimized: ImageOptimized | None
+    icon_optimized: ImageOptimized | None
 
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "Event":
+    def from_payload(payload: dict[str, Any]) -> Event:
         """Parse event data from payload."""
         start_date = payload.get("startDate")
         creation_date = payload.get("creationDate")
         end_date = payload.get("endDate")
 
-        def parse_datetime(dt_str: str | None) -> Optional[datetime]:
+        def parse_datetime(dt_str: str | None) -> datetime | None:
             if dt_str is None:
                 return None
             try:
@@ -271,7 +271,7 @@ class Event:
             except (ValueError, AttributeError, TypeError):
                 return None
 
-        def parse_float(value: Any) -> Optional[float]:
+        def parse_float(value: Any) -> float | None:
             if value is None:
                 return None
             try:
@@ -321,158 +321,158 @@ class Market(BaseMarket):
     """
 
     # Core fields
-    condition_id: Optional[str] = None
-    slug: Optional[str] = None
-    twitter_card_image: Optional[str] = None
-    resolution_source: Optional[str] = None
-    end_date: Optional[datetime] = None
-    category: Optional[str] = None
-    amm_type: Optional[str] = None
-    liquidity_str: Optional[str] = None
-    sponsor_name: Optional[str] = None
-    sponsor_image: Optional[str] = None
-    start_date: Optional[datetime] = None
-    x_axis_value: Optional[str] = None
-    y_axis_value: Optional[str] = None
-    denomination_token: Optional[str] = None
-    fee: Optional[str] = None
-    image: Optional[str] = None
-    icon: Optional[str] = None
-    lower_bound: Optional[str] = None
-    upper_bound: Optional[str] = None
-    description: Optional[str] = None
-    outcomes: Optional[str] = None
-    outcome_prices: Optional[str] = None
-    volume_str: Optional[str] = None
-    market_type: Optional[str] = None
-    format_type: Optional[str] = None
-    lower_bound_date: Optional[str] = None
-    upper_bound_date: Optional[str] = None
-    wide_format: Optional[bool] = None
-    new: Optional[bool] = None
-    featured: Optional[bool] = None
-    archived: Optional[bool] = None
-    resolved_by: Optional[str] = None
-    restricted: Optional[bool] = None
-    market_maker_address: Optional[str] = None
-    created_by: Optional[int] = None
-    updated_by: Optional[int] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    closed_time: Optional[str] = None
-    mailchimp_tag: Optional[str] = None
-    market_group: Optional[int] = None
-    group_item_title: Optional[str] = None
-    group_item_threshold: Optional[str] = None
-    question_id: Optional[str] = None
-    uma_end_date: Optional[str] = None
-    enable_order_book: Optional[bool] = None
-    order_price_min_tick_size: Optional[float] = None
-    order_min_size: Optional[float] = None
-    uma_resolution_status: Optional[str] = None
-    curation_order: Optional[int] = None
+    condition_id: str | None = None
+    slug: str | None = None
+    twitter_card_image: str | None = None
+    resolution_source: str | None = None
+    end_date: datetime | None = None
+    category: str | None = None
+    amm_type: str | None = None
+    liquidity_str: str | None = None
+    sponsor_name: str | None = None
+    sponsor_image: str | None = None
+    start_date: datetime | None = None
+    x_axis_value: str | None = None
+    y_axis_value: str | None = None
+    denomination_token: str | None = None
+    fee: str | None = None
+    image: str | None = None
+    icon: str | None = None
+    lower_bound: str | None = None
+    upper_bound: str | None = None
+    description: str | None = None
+    outcomes: str | None = None
+    outcome_prices: str | None = None
+    volume_str: str | None = None
+    market_type: str | None = None
+    format_type: str | None = None
+    lower_bound_date: str | None = None
+    upper_bound_date: str | None = None
+    wide_format: bool | None = None
+    new: bool | None = None
+    featured: bool | None = None
+    archived: bool | None = None
+    resolved_by: str | None = None
+    restricted: bool | None = None
+    market_maker_address: str | None = None
+    created_by: int | None = None
+    updated_by: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    closed_time: str | None = None
+    mailchimp_tag: str | None = None
+    market_group: int | None = None
+    group_item_title: str | None = None
+    group_item_threshold: str | None = None
+    question_id: str | None = None
+    uma_end_date: str | None = None
+    enable_order_book: bool | None = None
+    order_price_min_tick_size: float | None = None
+    order_min_size: float | None = None
+    uma_resolution_status: str | None = None
+    curation_order: int | None = None
     
     # Numeric fields
-    volume_num: Optional[float] = None
-    liquidity_num: Optional[float] = None
-    end_date_iso: Optional[str] = None
-    start_date_iso: Optional[str] = None
-    uma_end_date_iso: Optional[str] = None
-    has_reviewed_dates: Optional[bool] = None
-    ready_for_cron: Optional[bool] = None
-    comments_enabled: Optional[bool] = None
+    volume_num: float | None = None
+    liquidity_num: float | None = None
+    end_date_iso: str | None = None
+    start_date_iso: str | None = None
+    uma_end_date_iso: str | None = None
+    has_reviewed_dates: bool | None = None
+    ready_for_cron: bool | None = None
+    comments_enabled: bool | None = None
     
     # Volume fields
-    volume_24hr: Optional[float] = None
-    volume_1wk: Optional[float] = None
-    volume_1mo: Optional[float] = None
-    volume_1yr: Optional[float] = None
-    volume_24hr_amm: Optional[float] = None
-    volume_1wk_amm: Optional[float] = None
-    volume_1mo_amm: Optional[float] = None
-    volume_1yr_amm: Optional[float] = None
-    volume_24hr_clob: Optional[float] = None
-    volume_1wk_clob: Optional[float] = None
-    volume_1mo_clob: Optional[float] = None
-    volume_1yr_clob: Optional[float] = None
-    volume_amm: Optional[float] = None
-    volume_clob: Optional[float] = None
-    liquidity_amm: Optional[float] = None
-    liquidity_clob: Optional[float] = None
+    volume_24hr: float | None = None
+    volume_1wk: float | None = None
+    volume_1mo: float | None = None
+    volume_1yr: float | None = None
+    volume_24hr_amm: float | None = None
+    volume_1wk_amm: float | None = None
+    volume_1mo_amm: float | None = None
+    volume_1yr_amm: float | None = None
+    volume_24hr_clob: float | None = None
+    volume_1wk_clob: float | None = None
+    volume_1mo_clob: float | None = None
+    volume_1yr_clob: float | None = None
+    volume_amm: float | None = None
+    volume_clob: float | None = None
+    liquidity_amm: float | None = None
+    liquidity_clob: float | None = None
     
     # Trading fields
-    maker_base_fee: Optional[int] = None  # API returns integer
-    taker_base_fee: Optional[int] = None  # API returns integer
-    custom_liveness: Optional[int] = None
-    accepting_orders: Optional[bool] = None
-    notifications_enabled: Optional[bool] = None
-    score: Optional[int] = None
-    last_trade_price: Optional[float] = None
-    best_bid: Optional[float] = None
-    best_ask: Optional[float] = None
+    maker_base_fee: int | None = None  # API returns integer
+    taker_base_fee: int | None = None  # API returns integer
+    custom_liveness: int | None = None
+    accepting_orders: bool | None = None
+    notifications_enabled: bool | None = None
+    score: int | None = None
+    last_trade_price: float | None = None
+    best_bid: float | None = None
+    best_ask: float | None = None
     
     # Additional fields from API
-    creator: Optional[str] = None
-    ready: Optional[bool] = None
-    funded: Optional[bool] = None
-    past_slugs: Optional[str] = None
-    ready_timestamp: Optional[datetime] = None
-    funded_timestamp: Optional[datetime] = None
-    accepting_orders_timestamp: Optional[datetime] = None
-    competitive: Optional[float] = None
-    rewards_min_size: Optional[float] = None
-    rewards_max_spread: Optional[float] = None
-    spread: Optional[float] = None
-    automatically_resolved: Optional[bool] = None
-    one_day_price_change: Optional[float] = None
-    one_hour_price_change: Optional[float] = None
-    one_week_price_change: Optional[float] = None
-    one_month_price_change: Optional[float] = None
-    one_year_price_change: Optional[float] = None
-    automatically_active: Optional[bool] = None
-    clear_book_on_start: Optional[bool] = None
-    chart_color: Optional[str] = None
-    series_color: Optional[str] = None
-    show_gmp_series: Optional[bool] = None
-    show_gmp_outcome: Optional[bool] = None
-    manual_activation: Optional[bool] = None
-    neg_risk_other: Optional[bool] = None
-    game_id: Optional[str] = None
-    group_item_range: Optional[str] = None
-    sports_market_type: Optional[str] = None
-    line: Optional[float] = None
-    uma_resolution_statuses: Optional[str] = None
-    pending_deployment: Optional[bool] = None
-    deploying: Optional[bool] = None
-    deploying_timestamp: Optional[datetime] = None
-    scheduled_deployment_timestamp: Optional[datetime] = None
-    rfq_enabled: Optional[bool] = None
-    event_start_time: Optional[datetime] = None
-    game_start_time: Optional[str] = None
-    seconds_delay: Optional[int] = None
-    clob_token_ids: Optional[str] = None  # JSON string in API
-    disqus_thread: Optional[str] = None
-    short_outcomes: Optional[str] = None
-    team_a_id: Optional[str] = None
-    team_b_id: Optional[str] = None
-    uma_bond: Optional[str] = None
-    uma_reward: Optional[str] = None
-    fpmm_live: Optional[bool] = None
+    creator: str | None = None
+    ready: bool | None = None
+    funded: bool | None = None
+    past_slugs: str | None = None
+    ready_timestamp: datetime | None = None
+    funded_timestamp: datetime | None = None
+    accepting_orders_timestamp: datetime | None = None
+    competitive: float | None = None
+    rewards_min_size: float | None = None
+    rewards_max_spread: float | None = None
+    spread: float | None = None
+    automatically_resolved: bool | None = None
+    one_day_price_change: float | None = None
+    one_hour_price_change: float | None = None
+    one_week_price_change: float | None = None
+    one_month_price_change: float | None = None
+    one_year_price_change: float | None = None
+    automatically_active: bool | None = None
+    clear_book_on_start: bool | None = None
+    chart_color: str | None = None
+    series_color: str | None = None
+    show_gmp_series: bool | None = None
+    show_gmp_outcome: bool | None = None
+    manual_activation: bool | None = None
+    neg_risk_other: bool | None = None
+    game_id: str | None = None
+    group_item_range: str | None = None
+    sports_market_type: str | None = None
+    line: float | None = None
+    uma_resolution_statuses: str | None = None
+    pending_deployment: bool | None = None
+    deploying: bool | None = None
+    deploying_timestamp: datetime | None = None
+    scheduled_deployment_timestamp: datetime | None = None
+    rfq_enabled: bool | None = None
+    event_start_time: datetime | None = None
+    game_start_time: str | None = None
+    seconds_delay: int | None = None
+    clob_token_ids: str | None = None  # JSON string in API
+    disqus_thread: str | None = None
+    short_outcomes: str | None = None
+    team_a_id: str | None = None
+    team_b_id: str | None = None
+    uma_bond: str | None = None
+    uma_reward: str | None = None
+    fpmm_live: bool | None = None
     
     # Related objects
     events: list[Event] = field(default_factory=list)
     categories: list[Category] = field(default_factory=list)
     tags: list[Tag] = field(default_factory=list)
-    image_optimized: Optional[ImageOptimized] = None
-    icon_optimized: Optional[ImageOptimized] = None
+    image_optimized: ImageOptimized | None = None
+    icon_optimized: ImageOptimized | None = None
 
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "Market":
+    def from_payload(payload: dict[str, Any]) -> Market:
         """Parse market data from Gamma API payload.
         
         Reference: https://docs.polymarket.com/developers/gamma-markets-api/get-markets
         """
-        def parse_datetime(dt_str: str | None) -> Optional[datetime]:
+        def parse_datetime(dt_str: str | None) -> datetime | None:
             if dt_str is None:
                 return None
             try:
@@ -480,7 +480,7 @@ class Market(BaseMarket):
             except (ValueError, AttributeError):
                 return None
 
-        def parse_float(value: Any) -> Optional[float]:
+        def parse_float(value: Any) -> float | None:
             if value is None:
                 return None
             try:
@@ -488,7 +488,7 @@ class Market(BaseMarket):
             except (ValueError, TypeError):
                 return None
 
-        def parse_int(value: Any) -> Optional[int]:
+        def parse_int(value: Any) -> int | None:
             if value is None:
                 return None
             try:
@@ -496,7 +496,7 @@ class Market(BaseMarket):
             except (ValueError, TypeError):
                 return None
 
-        def parse_bool(value: Any) -> Optional[bool]:
+        def parse_bool(value: Any) -> bool | None:
             if value is None:
                 return None
             return bool(value)
@@ -675,7 +675,7 @@ class OrderBookLevel(BaseOrderBookLevel):
     """Single level in the order book."""
 
     @staticmethod
-    def from_payload(entry: list[float] | list[str] | dict[str, Any]) -> "OrderBookLevel":
+    def from_payload(entry: list[float] | list[str] | dict[str, Any]) -> OrderBookLevel:
         """Parse order book level from payload.
         
         Handles both formats:
@@ -715,11 +715,10 @@ class OrderBook(BaseOrderBook):
         if self.asks is None:
             self.asks = []
         if self.timestamp is None:
-            from datetime import timezone
-            self.timestamp = datetime.now(timezone.utc)
+            self.timestamp = datetime.now(UTC)
 
     @staticmethod
-    def from_payload(payload: dict[str, Any] | Any) -> "OrderBook":
+    def from_payload(payload: dict[str, Any] | Any) -> OrderBook:
         """Parse order book from payload (dict or object from py-clob-client)."""
         # Handle both dict and object responses
         if isinstance(payload, dict):
@@ -753,13 +752,12 @@ class OrderBook(BaseOrderBook):
         bids.sort(key=lambda x: x.price, reverse=True)
         asks.sort(key=lambda x: x.price, reverse=False)
 
-        from datetime import timezone
 
         return OrderBook(
             market=market or "",  # Fixed: use 'market' not 'symbol'
             bids=bids,
             asks=asks,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
 
 
@@ -770,9 +768,9 @@ class GetActiveOrdersParams:
     Reference: https://docs.polymarket.com/developers/CLOB/orders/get-active-order
     """
     
-    id: Optional[str] = None  # id of order to get information about
-    market: Optional[str] = None  # condition id of market
-    asset_id: Optional[str] = None  # id of the asset/token
+    id: str | None = None  # id of order to get information about
+    market: str | None = None  # condition id of market
+    asset_id: str | None = None  # id of the asset/token
     
     def to_query_params(self) -> dict[str, str]:
         """Convert to query parameters dict for HTTP request."""
@@ -818,7 +816,7 @@ class OrdersScoring:
     scoring: bool  # indicates if the order is scoring or not
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "OrdersScoring":
+    def from_payload(payload: dict[str, Any]) -> OrdersScoring:
         """Parse OrdersScoring from API response payload.
         
         Args:
@@ -844,8 +842,8 @@ class CancelMarketOrdersParams:
     Reference: https://docs.polymarket.com/developers/CLOB/orders/cancel-orders
     """
     
-    market: Optional[str] = None  # condition id of the market
-    asset_id: Optional[str] = None  # id of the asset/token
+    market: str | None = None  # condition id of the market
+    asset_id: str | None = None  # id of the asset/token
     
     def to_query_params(self) -> dict[str, str]:
         """Convert to query parameters dict for HTTP request."""
@@ -904,7 +902,7 @@ class OrderFilled:
         transaction_hash: str,
         block_number: int,
         log_index: int,
-    ) -> "OrderFilled":
+    ) -> OrderFilled:
         """Parse OrderFilled from web3 event log.
         
         Args:
@@ -963,7 +961,7 @@ class MakerOrder:
     side: str  # the side of the maker order. Can be buy or sell
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "MakerOrder":
+    def from_payload(payload: dict[str, Any]) -> MakerOrder:
         """Parse MakerOrder from API response payload.
         
         Args:
@@ -1053,7 +1051,7 @@ class Trade:
         return self.status.upper() == "FAILED"
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "Trade":
+    def from_payload(payload: dict[str, Any]) -> Trade:
         """Parse Trade from API response payload.
         
         Args:
@@ -1098,12 +1096,12 @@ class GetTradesParams:
     Reference: https://docs.polymarket.com/developers/CLOB/trades/trades
     """
     
-    id: Optional[str] = None  # id of trade to fetch
-    taker: Optional[str] = None  # address to get trades for where it is included as a taker
-    maker: Optional[str] = None  # address to get trades for where it is included as a maker
-    market: Optional[str] = None  # market for which to get the trades (condition ID)
-    before: Optional[str] = None  # unix timestamp representing cutoff up to which trades happened before
-    after: Optional[str] = None  # unix timestamp representing cutoff for which trades happened after
+    id: str | None = None  # id of trade to fetch
+    taker: str | None = None  # address to get trades for where it is included as a taker
+    maker: str | None = None  # address to get trades for where it is included as a maker
+    market: str | None = None  # market for which to get the trades (condition ID)
+    before: str | None = None  # unix timestamp representing cutoff up to which trades happened before
+    after: str | None = None  # unix timestamp representing cutoff for which trades happened after
     
     def to_query_params(self) -> dict[str, str]:
         """Convert to query parameters dict for HTTP request."""
@@ -1140,7 +1138,7 @@ class CancelOrdersResponse:
     not_canceled: dict[str, str]
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "CancelOrdersResponse":
+    def from_payload(payload: dict[str, Any]) -> CancelOrdersResponse:
         """Parse CancelOrdersResponse from API response payload.
         
         Args:
@@ -1188,7 +1186,7 @@ class OpenOrder:
     associate_trades: list[str] = field(default_factory=list)
 
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "OpenOrder":
+    def from_payload(payload: dict[str, Any]) -> OpenOrder:
         """Parse OpenOrder from API response payload.
         
         Args:
@@ -1240,7 +1238,7 @@ class WebSocketMakerOrder:
     price: str  # price of maker order
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "WebSocketMakerOrder":
+    def from_payload(payload: dict[str, Any]) -> WebSocketMakerOrder:
         """Parse WebSocketMakerOrder from message payload.
         
         Args:
@@ -1299,7 +1297,7 @@ class WebSocketTradeMessage:
         return self.status.upper() in ("CONFIRMED", "FAILED")
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "WebSocketTradeMessage":
+    def from_payload(payload: dict[str, Any]) -> WebSocketTradeMessage:
         """Parse WebSocketTradeMessage from message payload.
         
         Args:
@@ -1391,7 +1389,7 @@ class WebSocketOrderMessage:
         return self.type.upper() == "CANCELLATION"
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "WebSocketOrderMessage":
+    def from_payload(payload: dict[str, Any]) -> WebSocketOrderMessage:
         """Parse WebSocketOrderMessage from message payload.
         
         Args:
@@ -1440,7 +1438,7 @@ class OrderSummary:
     size: str  # size available at that price level
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "OrderSummary":
+    def from_payload(payload: dict[str, Any]) -> OrderSummary:
         """Parse OrderSummary from message payload.
         
         Args:
@@ -1475,7 +1473,7 @@ class WebSocketBookMessage:
     sells: list[OrderSummary]  # list of aggregate book levels for sells
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "WebSocketBookMessage":
+    def from_payload(payload: dict[str, Any]) -> WebSocketBookMessage:
         """Parse WebSocketBookMessage from message payload.
         
         Args:
@@ -1525,7 +1523,7 @@ class PriceChange:
     best_ask: str  # current best ask price
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "PriceChange":
+    def from_payload(payload: dict[str, Any]) -> PriceChange:
         """Parse PriceChange from message payload.
         
         Args:
@@ -1562,7 +1560,7 @@ class WebSocketPriceChangeMessage:
     timestamp: str  # unix timestamp in milliseconds
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "WebSocketPriceChangeMessage":
+    def from_payload(payload: dict[str, Any]) -> WebSocketPriceChangeMessage:
         """Parse WebSocketPriceChangeMessage from message payload.
         
         Args:
@@ -1606,7 +1604,7 @@ class WebSocketTickSizeChangeMessage:
     timestamp: str  # time of event
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "WebSocketTickSizeChangeMessage":
+    def from_payload(payload: dict[str, Any]) -> WebSocketTickSizeChangeMessage:
         """Parse WebSocketTickSizeChangeMessage from message payload.
         
         Args:
@@ -1646,7 +1644,7 @@ class WebSocketLastTradePriceMessage:
     timestamp: str  # unix timestamp in milliseconds
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "WebSocketLastTradePriceMessage":
+    def from_payload(payload: dict[str, Any]) -> WebSocketLastTradePriceMessage:
         """Parse WebSocketLastTradePriceMessage from message payload.
         
         Args:
@@ -1683,14 +1681,14 @@ class GetEventsParams:
     Reference: https://docs.polymarket.com/api-reference/events/list-events
     """
     
-    limit: Optional[int] = None
-    offset: Optional[int] = None
-    order: Optional[str] = None  # Comma-separated list of fields to order by
-    ascending: Optional[bool] = None
-    tag_id: Optional[int] = None
-    related_tags: Optional[bool] = None
-    closed: Optional[bool] = None
-    exclude_tag_id: Optional[int] = None
+    limit: int | None = None
+    offset: int | None = None
+    order: str | None = None  # Comma-separated list of fields to order by
+    ascending: bool | None = None
+    tag_id: int | None = None
+    related_tags: bool | None = None
+    closed: bool | None = None
+    exclude_tag_id: int | None = None
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -1723,12 +1721,12 @@ class GetTagsParams:
     Reference: https://docs.polymarket.com/api-reference/tags/list-tags
     """
     
-    limit: Optional[int] = None
-    offset: Optional[int] = None
-    order: Optional[str] = None
-    ascending: Optional[bool] = None
-    include_template: Optional[bool] = None
-    is_carousel: Optional[bool] = None
+    limit: int | None = None
+    offset: int | None = None
+    order: str | None = None
+    ascending: bool | None = None
+    include_template: bool | None = None
+    is_carousel: bool | None = None
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -1757,13 +1755,13 @@ class GetTeamsParams:
     Reference: https://docs.polymarket.com/api-reference/sports/list-teams
     """
     
-    limit: Optional[int] = None
-    offset: Optional[int] = None
-    order: Optional[str] = None
-    ascending: Optional[bool] = None
-    league: Optional[list[str]] = None
-    name: Optional[list[str]] = None
-    abbreviation: Optional[list[str]] = None
+    limit: int | None = None
+    offset: int | None = None
+    order: str | None = None
+    ascending: bool | None = None
+    league: list[str] | None = None
+    name: list[str] | None = None
+    abbreviation: list[str] | None = None
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -1794,8 +1792,8 @@ class GetRelatedTagsParams:
     Reference: https://docs.polymarket.com/api-reference/tags/get-related-tags-relationships-by-tag-id
     """
     
-    omit_empty: Optional[bool] = None
-    status: Optional[str] = None  # "active", "closed", "all"
+    omit_empty: bool | None = None
+    status: str | None = None  # "active", "closed", "all"
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -1816,10 +1814,10 @@ class GetSeriesParams:
     Reference: https://docs.polymarket.com/api-reference/series/list-series
     """
     
-    limit: Optional[int] = None
-    offset: Optional[int] = None
-    order: Optional[str] = None
-    ascending: Optional[bool] = None
+    limit: int | None = None
+    offset: int | None = None
+    order: str | None = None
+    ascending: bool | None = None
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -1844,10 +1842,10 @@ class GetCommentsParams:
     Reference: https://docs.polymarket.com/api-reference/comments/list-comments
     """
     
-    limit: Optional[int] = None
-    offset: Optional[int] = None
-    order: Optional[str] = None
-    ascending: Optional[bool] = None
+    limit: int | None = None
+    offset: int | None = None
+    order: str | None = None
+    ascending: bool | None = None
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -1873,8 +1871,8 @@ class SearchParams:
     """
     
     q: str  # Search query (required)
-    limit: Optional[int] = None
-    offset: Optional[int] = None
+    limit: int | None = None
+    offset: int | None = None
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -1896,19 +1894,19 @@ class Team:
     """
     
     id: int
-    name: Optional[str] = None
-    league: Optional[str] = None
-    record: Optional[str] = None
-    logo: Optional[str] = None
-    abbreviation: Optional[str] = None
-    alias: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    name: str | None = None
+    league: str | None = None
+    record: str | None = None
+    logo: str | None = None
+    abbreviation: str | None = None
+    alias: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "Team":
+    def from_payload(payload: dict[str, Any]) -> Team:
         """Parse Team from API response payload."""
-        def parse_datetime(dt_str: str | None) -> Optional[datetime]:
+        def parse_datetime(dt_str: str | None) -> datetime | None:
             if dt_str is None:
                 return None
             try:
@@ -1937,14 +1935,14 @@ class SportsMetadata:
     """
     
     sport: str  # The sport identifier or abbreviation
-    image: Optional[str] = None  # URL to the sport's logo or image asset
-    resolution: Optional[str] = None  # URL to the official resolution source
-    ordering: Optional[str] = None  # Preferred ordering (typically "home" or "away")
-    tags: Optional[str] = None  # Comma-separated list of tag IDs
-    series: Optional[str] = None  # Series identifier
+    image: str | None = None  # URL to the sport's logo or image asset
+    resolution: str | None = None  # URL to the official resolution source
+    ordering: str | None = None  # Preferred ordering (typically "home" or "away")
+    tags: str | None = None  # Comma-separated list of tag IDs
+    series: str | None = None  # Series identifier
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "SportsMetadata":
+    def from_payload(payload: dict[str, Any]) -> SportsMetadata:
         """Parse SportsMetadata from API response payload."""
         return SportsMetadata(
             sport=str(payload.get("sport", "")),
@@ -1964,12 +1962,12 @@ class RelatedTag:
     """
     
     id: str
-    tag_id: Optional[int] = None
-    related_tag_id: Optional[int] = None
-    rank: Optional[int] = None
+    tag_id: int | None = None
+    related_tag_id: int | None = None
+    rank: int | None = None
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "RelatedTag":
+    def from_payload(payload: dict[str, Any]) -> RelatedTag:
         """Parse RelatedTag from API response payload."""
         return RelatedTag(
             id=str(payload.get("id", "")),
@@ -1987,37 +1985,37 @@ class Series:
     """
     
     id: str
-    ticker: Optional[str] = None
-    slug: Optional[str] = None
-    title: Optional[str] = None
-    subtitle: Optional[str] = None
-    series_type: Optional[str] = None
-    recurrence: Optional[str] = None
-    image: Optional[str] = None
-    icon: Optional[str] = None
-    layout: Optional[str] = None
-    active: Optional[bool] = None
-    closed: Optional[bool] = None
-    archived: Optional[bool] = None
-    new: Optional[bool] = None
-    featured: Optional[bool] = None
-    restricted: Optional[bool] = None
-    published_at: Optional[datetime] = None
-    created_by: Optional[int] = None
-    updated_by: Optional[int] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    comments_enabled: Optional[bool] = None
-    competitive: Optional[str] = None
-    volume_24hr: Optional[float] = None
-    volume: Optional[float] = None
-    liquidity: Optional[float] = None
-    start_date: Optional[datetime] = None
+    ticker: str | None = None
+    slug: str | None = None
+    title: str | None = None
+    subtitle: str | None = None
+    series_type: str | None = None
+    recurrence: str | None = None
+    image: str | None = None
+    icon: str | None = None
+    layout: str | None = None
+    active: bool | None = None
+    closed: bool | None = None
+    archived: bool | None = None
+    new: bool | None = None
+    featured: bool | None = None
+    restricted: bool | None = None
+    published_at: datetime | None = None
+    created_by: int | None = None
+    updated_by: int | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    comments_enabled: bool | None = None
+    competitive: str | None = None
+    volume_24hr: float | None = None
+    volume: float | None = None
+    liquidity: float | None = None
+    start_date: datetime | None = None
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "Series":
+    def from_payload(payload: dict[str, Any]) -> Series:
         """Parse Series from API response payload."""
-        def parse_datetime(dt_str: str | None) -> Optional[datetime]:
+        def parse_datetime(dt_str: str | None) -> datetime | None:
             if dt_str is None:
                 return None
             try:
@@ -2025,7 +2023,7 @@ class Series:
             except (ValueError, AttributeError, TypeError):
                 return None
 
-        def parse_float(value: Any) -> Optional[float]:
+        def parse_float(value: Any) -> float | None:
             if value is None:
                 return None
             try:
@@ -2072,18 +2070,18 @@ class Comment:
     """
     
     id: str
-    content: Optional[str] = None
-    user_address: Optional[str] = None
-    market_id: Optional[str] = None
-    event_id: Optional[str] = None
-    parent_id: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    content: str | None = None
+    user_address: str | None = None
+    market_id: str | None = None
+    event_id: str | None = None
+    parent_id: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "Comment":
+    def from_payload(payload: dict[str, Any]) -> Comment:
         """Parse Comment from API response payload."""
-        def parse_datetime(dt_str: str | None) -> Optional[datetime]:
+        def parse_datetime(dt_str: str | None) -> datetime | None:
             if dt_str is None:
                 return None
             try:
@@ -2112,13 +2110,13 @@ class SearchResult:
     
     type: str  # "market", "event", "profile", etc.
     id: str
-    title: Optional[str] = None
-    slug: Optional[str] = None
-    description: Optional[str] = None
+    title: str | None = None
+    slug: str | None = None
+    description: str | None = None
     data: dict[str, Any] = field(default_factory=dict)  # Additional result-specific data
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "SearchResult":
+    def from_payload(payload: dict[str, Any]) -> SearchResult:
         """Parse SearchResult from API response payload."""
         return SearchResult(
             type=str(payload.get("type", "")),
@@ -2138,16 +2136,16 @@ class GetPositionsParams:
     """
     
     user: str  # Required: User address
-    market: Optional[list[str]] = None  # Comma-separated list of condition IDs
-    event_id: Optional[list[int]] = None  # Comma-separated list of event IDs
-    size_threshold: Optional[float] = None  # Minimum size threshold (default: 1)
-    redeemable: Optional[bool] = None  # Filter by redeemable positions (default: false)
-    mergeable: Optional[bool] = None  # Filter by mergeable positions (default: false)
-    limit: Optional[int] = None  # Maximum: 500, default: 100
-    offset: Optional[int] = None  # Maximum: 10000, default: 0
-    sort_by: Optional[str] = None  # CURRENT, INITIAL, TOKENS, CASHPNL, PERCENTPNL, TITLE, RESOLVING, PRICE, AVGPRICE (default: TOKENS)
-    sort_direction: Optional[str] = None  # ASC, DESC (default: DESC)
-    title: Optional[str] = None  # Filter by title (maxLength: 100)
+    market: list[str] | None = None  # Comma-separated list of condition IDs
+    event_id: list[int] | None = None  # Comma-separated list of event IDs
+    size_threshold: float | None = None  # Minimum size threshold (default: 1)
+    redeemable: bool | None = None  # Filter by redeemable positions (default: false)
+    mergeable: bool | None = None  # Filter by mergeable positions (default: false)
+    limit: int | None = None  # Maximum: 500, default: 100
+    offset: int | None = None  # Maximum: 10000, default: 0
+    sort_by: str | None = None  # CURRENT, INITIAL, TOKENS, CASHPNL, PERCENTPNL, TITLE, RESOLVING, PRICE, AVGPRICE (default: TOKENS)
+    sort_direction: str | None = None  # ASC, DESC (default: DESC)
+    title: str | None = None  # Filter by title (maxLength: 100)
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -2184,15 +2182,15 @@ class GetDataTradesParams:
     Reference: https://docs.polymarket.com/api-reference/core/get-trades-for-a-user-or-markets
     """
     
-    user: Optional[str] = None  # User Profile Address
-    market: Optional[list[str]] = None  # Comma-separated list of condition IDs
-    event_id: Optional[list[int]] = None  # Comma-separated list of event IDs
-    limit: Optional[int] = None  # Maximum: 10000, default: 100
-    offset: Optional[int] = None  # Maximum: 10000, default: 0
-    taker_only: Optional[bool] = None  # Filter for taker trades (default: true)
-    filter_type: Optional[str] = None  # CASH or TOKENS (must be provided with filter_amount)
-    filter_amount: Optional[float] = None  # Amount for filtering (must be provided with filter_type)
-    side: Optional[str] = None  # BUY or SELL
+    user: str | None = None  # User Profile Address
+    market: list[str] | None = None  # Comma-separated list of condition IDs
+    event_id: list[int] | None = None  # Comma-separated list of event IDs
+    limit: int | None = None  # Maximum: 10000, default: 100
+    offset: int | None = None  # Maximum: 10000, default: 0
+    taker_only: bool | None = None  # Filter for taker trades (default: true)
+    filter_type: str | None = None  # CASH or TOKENS (must be provided with filter_amount)
+    filter_amount: float | None = None  # Amount for filtering (must be provided with filter_type)
+    side: str | None = None  # BUY or SELL
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -2228,15 +2226,15 @@ class GetActivityParams:
     """
     
     user: str  # Required: User Profile Address
-    market: Optional[list[str]] = None  # Comma-separated list of condition IDs
-    event_id: Optional[list[int]] = None  # Comma-separated list of event IDs
-    type: Optional[list[str]] = None  # TRADE, SPLIT, MERGE, REDEEM, REWARD, CONVERSION
-    start: Optional[int] = None  # Start timestamp
-    end: Optional[int] = None  # End timestamp
-    limit: Optional[int] = None  # Maximum: 500, default: 100
-    offset: Optional[int] = None  # Maximum: 10000, default: 0
-    sort_by: Optional[str] = None  # TIMESTAMP, TOKENS, CASH (default: TIMESTAMP)
-    sort_direction: Optional[str] = None  # ASC, DESC (default: DESC)
+    market: list[str] | None = None  # Comma-separated list of condition IDs
+    event_id: list[int] | None = None  # Comma-separated list of event IDs
+    type: list[str] | None = None  # TRADE, SPLIT, MERGE, REDEEM, REWARD, CONVERSION
+    start: int | None = None  # Start timestamp
+    end: int | None = None  # End timestamp
+    limit: int | None = None  # Maximum: 500, default: 100
+    offset: int | None = None  # Maximum: 10000, default: 0
+    sort_by: str | None = None  # TIMESTAMP, TOKENS, CASH (default: TIMESTAMP)
+    sort_direction: str | None = None  # ASC, DESC (default: DESC)
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -2271,10 +2269,10 @@ class GetTopHoldersParams:
     Reference: https://docs.polymarket.com/api-reference/core/get-top-holders-for-markets
     """
     
-    market: Optional[list[str]] = None  # Comma-separated list of condition IDs
-    event_id: Optional[list[int]] = None  # Comma-separated list of event IDs
-    limit: Optional[int] = None  # Maximum: 500, default: 100
-    offset: Optional[int] = None  # Maximum: 10000, default: 0
+    market: list[str] | None = None  # Comma-separated list of condition IDs
+    event_id: list[int] | None = None  # Comma-separated list of event IDs
+    limit: int | None = None  # Maximum: 500, default: 100
+    offset: int | None = None  # Maximum: 10000, default: 0
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -2300,11 +2298,11 @@ class GetClosedPositionsParams:
     """
     
     user: str  # Required: User address
-    market: Optional[list[str]] = None  # Comma-separated list of condition IDs
-    event_id: Optional[list[int]] = None  # Comma-separated list of event IDs
-    title: Optional[str] = None  # Filter by market title
-    limit: Optional[int] = None  # Default: 10
-    offset: Optional[int] = None  # Default: 0
+    market: list[str] | None = None  # Comma-separated list of condition IDs
+    event_id: list[int] | None = None  # Comma-separated list of event IDs
+    title: str | None = None  # Filter by market title
+    limit: int | None = None  # Default: 10
+    offset: int | None = None  # Default: 0
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -2332,7 +2330,7 @@ class GetTotalValueParams:
     """
     
     user: str  # Required: User address
-    market: Optional[list[str]] = None  # Comma-separated list of condition IDs
+    market: list[str] | None = None  # Comma-separated list of condition IDs
     
     def to_query_params(self) -> dict[str, Any]:
         """Convert to query parameters dict for HTTP request."""
@@ -2364,21 +2362,21 @@ class Position:
     cur_price: float
     redeemable: bool
     mergeable: bool
-    realized_pnl: Optional[float] = None
-    percent_realized_pnl: Optional[float] = None
-    title: Optional[str] = None
-    slug: Optional[str] = None
-    icon: Optional[str] = None
-    event_slug: Optional[str] = None
-    outcome: Optional[str] = None
-    outcome_index: Optional[int] = None
-    opposite_outcome: Optional[str] = None
-    opposite_asset: Optional[str] = None
-    end_date: Optional[str] = None
-    negative_risk: Optional[bool] = None
+    realized_pnl: float | None = None
+    percent_realized_pnl: float | None = None
+    title: str | None = None
+    slug: str | None = None
+    icon: str | None = None
+    event_slug: str | None = None
+    outcome: str | None = None
+    outcome_index: int | None = None
+    opposite_outcome: str | None = None
+    opposite_asset: str | None = None
+    end_date: str | None = None
+    negative_risk: bool | None = None
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "Position":
+    def from_payload(payload: dict[str, Any]) -> Position:
         """Parse Position from API response payload."""
         return Position(
             proxy_wallet=str(payload.get("proxyWallet", "")),
@@ -2423,21 +2421,21 @@ class DataTrade:
     size: float
     price: float
     timestamp: int
-    title: Optional[str] = None
-    slug: Optional[str] = None
-    icon: Optional[str] = None
-    event_slug: Optional[str] = None
-    outcome: Optional[str] = None
-    outcome_index: Optional[int] = None
-    name: Optional[str] = None
-    pseudonym: Optional[str] = None
-    bio: Optional[str] = None
-    profile_image: Optional[str] = None
-    profile_image_optimized: Optional[str] = None
-    transaction_hash: Optional[str] = None
+    title: str | None = None
+    slug: str | None = None
+    icon: str | None = None
+    event_slug: str | None = None
+    outcome: str | None = None
+    outcome_index: int | None = None
+    name: str | None = None
+    pseudonym: str | None = None
+    bio: str | None = None
+    profile_image: str | None = None
+    profile_image_optimized: str | None = None
+    transaction_hash: str | None = None
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "DataTrade":
+    def from_payload(payload: dict[str, Any]) -> DataTrade:
         """Parse DataTrade from API response payload."""
         return DataTrade(
             proxy_wallet=str(payload.get("proxyWallet", "")),
@@ -2473,26 +2471,26 @@ class Activity:
     timestamp: int
     condition_id: str
     type: str  # TRADE, SPLIT, MERGE, REDEEM, REWARD, CONVERSION
-    size: Optional[float] = None
-    usdc_size: Optional[float] = None
-    transaction_hash: Optional[str] = None
-    price: Optional[float] = None
-    asset: Optional[str] = None
-    side: Optional[str] = None  # BUY or SELL
-    outcome_index: Optional[int] = None
-    title: Optional[str] = None
-    slug: Optional[str] = None
-    icon: Optional[str] = None
-    event_slug: Optional[str] = None
-    outcome: Optional[str] = None
-    name: Optional[str] = None
-    pseudonym: Optional[str] = None
-    bio: Optional[str] = None
-    profile_image: Optional[str] = None
-    profile_image_optimized: Optional[str] = None
+    size: float | None = None
+    usdc_size: float | None = None
+    transaction_hash: str | None = None
+    price: float | None = None
+    asset: str | None = None
+    side: str | None = None  # BUY or SELL
+    outcome_index: int | None = None
+    title: str | None = None
+    slug: str | None = None
+    icon: str | None = None
+    event_slug: str | None = None
+    outcome: str | None = None
+    name: str | None = None
+    pseudonym: str | None = None
+    bio: str | None = None
+    profile_image: str | None = None
+    profile_image_optimized: str | None = None
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "Activity":
+    def from_payload(payload: dict[str, Any]) -> Activity:
         """Parse Activity from API response payload."""
         return Activity(
             proxy_wallet=str(payload.get("proxyWallet", "")),
@@ -2530,20 +2528,20 @@ class TopHolder:
     asset: str
     condition_id: str
     size: float
-    name: Optional[str] = None
-    pseudonym: Optional[str] = None
-    bio: Optional[str] = None
-    profile_image: Optional[str] = None
-    profile_image_optimized: Optional[str] = None
-    title: Optional[str] = None
-    slug: Optional[str] = None
-    icon: Optional[str] = None
-    event_slug: Optional[str] = None
-    outcome: Optional[str] = None
-    outcome_index: Optional[int] = None
+    name: str | None = None
+    pseudonym: str | None = None
+    bio: str | None = None
+    profile_image: str | None = None
+    profile_image_optimized: str | None = None
+    title: str | None = None
+    slug: str | None = None
+    icon: str | None = None
+    event_slug: str | None = None
+    outcome: str | None = None
+    outcome_index: int | None = None
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "TopHolder":
+    def from_payload(payload: dict[str, Any]) -> TopHolder:
         """Parse TopHolder from API response payload."""
         return TopHolder(
             proxy_wallet=str(payload.get("proxyWallet", "")),
@@ -2579,18 +2577,18 @@ class ClosedPosition:
     realized_pnl: float
     cur_price: float
     timestamp: int
-    title: Optional[str] = None
-    slug: Optional[str] = None
-    icon: Optional[str] = None
-    event_slug: Optional[str] = None
-    outcome: Optional[str] = None
-    outcome_index: Optional[int] = None
-    opposite_outcome: Optional[str] = None
-    opposite_asset: Optional[str] = None
-    end_date: Optional[str] = None
+    title: str | None = None
+    slug: str | None = None
+    icon: str | None = None
+    event_slug: str | None = None
+    outcome: str | None = None
+    outcome_index: int | None = None
+    opposite_outcome: str | None = None
+    opposite_asset: str | None = None
+    end_date: str | None = None
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "ClosedPosition":
+    def from_payload(payload: dict[str, Any]) -> ClosedPosition:
         """Parse ClosedPosition from API response payload."""
         return ClosedPosition(
             proxy_wallet=str(payload.get("proxyWallet", "")),
@@ -2624,7 +2622,7 @@ class TotalValue:
     value: float
     
     @staticmethod
-    def from_payload(payload: dict[str, Any]) -> "TotalValue":
+    def from_payload(payload: dict[str, Any]) -> TotalValue:
         """Parse TotalValue from API response payload."""
         return TotalValue(
             user=str(payload.get("user", "")),

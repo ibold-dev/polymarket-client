@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Literal
 
 try:
     from py_clob_client.client import ClobClient
@@ -104,13 +104,13 @@ class PolymarketClient(BaseMarketClient):
         self,
         *,
         base_url: str = "https://clob.polymarket.com",
-        private_key: Optional[str] = None,
+        private_key: str | None = None,
         chain_id: int = 137,  # Polygon Mainnet
-        funder: Optional[str] = None,
-        signature_type: Optional[int] = None,
+        funder: str | None = None,
+        signature_type: int | None = None,
         timeout: int = 10,
-        rpc_url: Optional[str] = None,
-        exchange_contract_address: Optional[str] = None,
+        rpc_url: str | None = None,
+        exchange_contract_address: str | None = None,
     ) -> None:
         """Initialize Polymarket client.
 
@@ -153,13 +153,13 @@ class PolymarketClient(BaseMarketClient):
             self._signature_type = 2
         else:
             self._signature_type = signature_type
-        self._client: Optional[ClobClient] = None
+        self._client: ClobClient | None = None
         self._is_read_only = private_key is None
         
         # Web3 setup for onchain event parsing
         self._rpc_url = rpc_url or self._get_default_rpc_url(chain_id)
         self._exchange_contract_address = exchange_contract_address or self._get_default_exchange_address(chain_id)
-        self._web3: Optional[Web3] = None
+        self._web3: Web3 | None = None
 
     @property
     def _clob_client(self) -> ClobClient:
@@ -260,7 +260,7 @@ class PolymarketClient(BaseMarketClient):
 
     def get_markets(
         self,
-        params: Optional[GetMarketsParams] = None,
+        params: GetMarketsParams | None = None,
     ) -> list[Market]:
         """Fetch markets from the Gamma API.
         
@@ -308,7 +308,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to parse markets: {e}") from e
 
-    def get_market(self, market_id: str) -> Optional[BaseMarket]:
+    def get_market(self, market_id: str) -> BaseMarket | None:
         """Fetch a specific market by token ID.
 
         Args:
@@ -346,7 +346,7 @@ class PolymarketClient(BaseMarketClient):
 
         try:
             # Use direct CLOB API endpoint: https://clob.polymarket.com/book?token_id=...
-            url = f"https://clob.polymarket.com/book"
+            url = "https://clob.polymarket.com/book"
             params = {"token_id": market_id}
             
             with httpx.Client(timeout=self._timeout) as client:
@@ -420,7 +420,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to fetch price for {token_id} (side={side}): {e}") from e
 
-    def get_market_by_slug(self, slug: str) -> Optional[Market]:
+    def get_market_by_slug(self, slug: str) -> Market | None:
         """Fetch market data from Gamma API by slug.
         
         Reference: https://docs.polymarket.com/api-reference/markets/get-market-by-slug
@@ -456,7 +456,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to parse market: {e}") from e
 
-    def get_market_by_id(self, market_id: int) -> Optional[Market]:
+    def get_market_by_id(self, market_id: int) -> Market | None:
         """Fetch market data from Gamma API by ID.
         
         Reference: https://docs.polymarket.com/api-reference/markets/get-market-by-id
@@ -532,7 +532,7 @@ class PolymarketClient(BaseMarketClient):
 
     def get_events(
         self,
-        params: Optional[GetEventsParams] = None,
+        params: GetEventsParams | None = None,
     ) -> list[Event]:
         """Fetch events from the Gamma API.
         
@@ -580,7 +580,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to parse events: {e}") from e
 
-    def get_event_by_id(self, event_id: int) -> Optional[Event]:
+    def get_event_by_id(self, event_id: int) -> Event | None:
         """Fetch event data from Gamma API by ID.
         
         Reference: https://docs.polymarket.com/api-reference/events/get-event-by-id
@@ -616,7 +616,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to parse event: {e}") from e
 
-    def get_event_by_slug(self, slug: str) -> Optional[Event]:
+    def get_event_by_slug(self, slug: str) -> Event | None:
         """Fetch event data from Gamma API by slug.
         
         Reference: https://docs.polymarket.com/api-reference/events/get-event-by-slug
@@ -692,7 +692,7 @@ class PolymarketClient(BaseMarketClient):
 
     def get_tags(
         self,
-        params: Optional[GetTagsParams] = None,
+        params: GetTagsParams | None = None,
     ) -> list[Tag]:
         """Fetch tags from the Gamma API.
         
@@ -740,7 +740,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to parse tags: {e}") from e
 
-    def get_tag_by_id(self, tag_id: int, include_template: Optional[bool] = None) -> Optional[Tag]:
+    def get_tag_by_id(self, tag_id: int, include_template: bool | None = None) -> Tag | None:
         """Fetch tag data from Gamma API by ID.
         
         Reference: https://docs.polymarket.com/api-reference/tags/get-tag-by-id
@@ -782,7 +782,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to parse tag: {e}") from e
 
-    def get_tag_by_slug(self, slug: str, include_template: Optional[bool] = None) -> Optional[Tag]:
+    def get_tag_by_slug(self, slug: str, include_template: bool | None = None) -> Tag | None:
         """Fetch tag data from Gamma API by slug.
         
         Reference: https://docs.polymarket.com/api-reference/tags/get-tag-by-slug
@@ -827,7 +827,7 @@ class PolymarketClient(BaseMarketClient):
     def get_related_tags_by_tag_id(
         self,
         tag_id: int,
-        params: Optional[GetRelatedTagsParams] = None,
+        params: GetRelatedTagsParams | None = None,
     ) -> list[RelatedTag]:
         """Fetch related tags by tag ID.
         
@@ -876,7 +876,7 @@ class PolymarketClient(BaseMarketClient):
     def get_related_tags_by_tag_slug(
         self,
         slug: str,
-        params: Optional[GetRelatedTagsParams] = None,
+        params: GetRelatedTagsParams | None = None,
     ) -> list[RelatedTag]:
         """Fetch related tags by tag slug.
         
@@ -925,7 +925,7 @@ class PolymarketClient(BaseMarketClient):
     def get_tags_related_to_tag_id(
         self,
         tag_id: int,
-        params: Optional[GetRelatedTagsParams] = None,
+        params: GetRelatedTagsParams | None = None,
     ) -> list[Tag]:
         """Fetch tags related to a tag by ID.
         
@@ -974,7 +974,7 @@ class PolymarketClient(BaseMarketClient):
     def get_tags_related_to_tag_slug(
         self,
         slug: str,
-        params: Optional[GetRelatedTagsParams] = None,
+        params: GetRelatedTagsParams | None = None,
     ) -> list[Tag]:
         """Fetch tags related to a tag by slug.
         
@@ -1022,7 +1022,7 @@ class PolymarketClient(BaseMarketClient):
 
     def get_teams(
         self,
-        params: Optional[GetTeamsParams] = None,
+        params: GetTeamsParams | None = None,
     ) -> list[Team]:
         """Fetch teams from the Gamma API.
         
@@ -1110,7 +1110,7 @@ class PolymarketClient(BaseMarketClient):
 
     def get_series(
         self,
-        params: Optional[GetSeriesParams] = None,
+        params: GetSeriesParams | None = None,
     ) -> list[Series]:
         """Fetch series from the Gamma API.
         
@@ -1158,7 +1158,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to parse series: {e}") from e
 
-    def get_series_by_id(self, series_id: int) -> Optional[Series]:
+    def get_series_by_id(self, series_id: int) -> Series | None:
         """Fetch series data from Gamma API by ID.
         
         Reference: https://docs.polymarket.com/api-reference/series/get-series-by-id
@@ -1196,7 +1196,7 @@ class PolymarketClient(BaseMarketClient):
 
     def get_comments(
         self,
-        params: Optional[GetCommentsParams] = None,
+        params: GetCommentsParams | None = None,
     ) -> list[Comment]:
         """Fetch comments from the Gamma API.
         
@@ -1244,7 +1244,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to parse comments: {e}") from e
 
-    def get_comment_by_id(self, comment_id: int) -> Optional[Comment]:
+    def get_comment_by_id(self, comment_id: int) -> Comment | None:
         """Fetch comment data from Gamma API by ID.
         
         Reference: https://docs.polymarket.com/api-reference/comments/get-comments-by-comment-id
@@ -1432,7 +1432,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to parse positions: {e}") from e
 
-    def get_data_trades(self, params: Optional[GetDataTradesParams] = None) -> list[DataTrade]:
+    def get_data_trades(self, params: GetDataTradesParams | None = None) -> list[DataTrade]:
         """Get trades for a user or markets from Data API.
         
         Reference: https://docs.polymarket.com/api-reference/core/get-trades-for-a-user-or-markets
@@ -1525,7 +1525,7 @@ class PolymarketClient(BaseMarketClient):
 
     def get_top_holders(
         self,
-        params: Optional[GetTopHoldersParams] = None,
+        params: GetTopHoldersParams | None = None,
     ) -> list[TopHolder]:
         """Get top holders for markets.
         
@@ -1776,7 +1776,7 @@ class PolymarketClient(BaseMarketClient):
         except PolymarketClientError:
             # Re-raise PolymarketClientError as-is (already has good error message)
             raise
-        except ValueError as e:
+        except ValueError:
             # Re-raise ValueError from OrderRequest validation
             raise
         except Exception as e:
@@ -1923,7 +1923,7 @@ class PolymarketClient(BaseMarketClient):
         except PolymarketClientError:
             # Re-raise PolymarketClientError as-is (already has good error message)
             raise
-        except ValueError as e:
+        except ValueError:
             # Re-raise ValueError from validation
             raise
         except Exception as e:
@@ -2200,7 +2200,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to cancel market orders: {e}") from e
 
-    def get_order(self, order_id: str) -> Optional[OpenOrder]:
+    def get_order(self, order_id: str) -> OpenOrder | None:
         """Get information about a single order by ID.
         
         Reference: https://docs.polymarket.com/developers/CLOB/orders/get-order
@@ -2295,7 +2295,7 @@ class PolymarketClient(BaseMarketClient):
 
     def get_active_orders(
         self,
-        params: Optional[GetActiveOrdersParams] = None,
+        params: GetActiveOrdersParams | None = None,
     ) -> list[OpenOrder]:
         """Get active orders for a specific market.
         
@@ -2386,7 +2386,7 @@ class PolymarketClient(BaseMarketClient):
                 if isinstance(order_data, dict):
                     try:
                         active_orders.append(OpenOrder.from_payload(order_data))
-                    except Exception as e:
+                    except Exception:
                         # Skip invalid order entries but continue processing others
                         continue
             
@@ -2538,7 +2538,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to check orders scoring: {e}") from e
 
-    def get_orders(self, market_id: Optional[str] = None) -> list[BaseOrder]:
+    def get_orders(self, market_id: str | None = None) -> list[BaseOrder]:
         """Fetch user's orders.
 
         Args:
@@ -2712,7 +2712,7 @@ class PolymarketClient(BaseMarketClient):
         negative_risk: bool
         
         @classmethod
-        def from_dict(cls, data: dict[str, Any]) -> "PolymarketClient.Position":
+        def from_dict(cls, data: dict[str, Any]) -> PolymarketClient.Position:
             """Create Position from API response dictionary.
             
             Args:
@@ -2787,11 +2787,11 @@ class PolymarketClient(BaseMarketClient):
     
     def get_positions(
         self,
-        user_address: Optional[str] = None,
-        market: Optional[list[str]] = None,
-        size_threshold: Optional[float] = None,
-        limit: Optional[int] = None,
-    ) -> list["PolymarketClient.Position"]:
+        user_address: str | None = None,
+        market: list[str] | None = None,
+        size_threshold: float | None = None,
+        limit: int | None = None,
+    ) -> list[PolymarketClient.Position]:
         """Fetch current positions from Polymarket Data API.
         
         Uses the Polymarket Data API endpoint: GET /positions
@@ -3030,8 +3030,8 @@ class PolymarketClient(BaseMarketClient):
     def get_order_filled_events(
         self,
         order_hash: str,
-        from_block: Optional[int] = None,
-        to_block: Optional[int] = None,
+        from_block: int | None = None,
+        to_block: int | None = None,
     ) -> list[OrderFilled]:
         """Get OrderFilled events for a specific order hash.
         
@@ -3168,7 +3168,7 @@ class PolymarketClient(BaseMarketClient):
     # Trade methods
     def get_trades(
         self,
-        params: Optional[GetTradesParams] = None,
+        params: GetTradesParams | None = None,
     ) -> list[Trade]:
         """Get trades for the authenticated user based on provided filters.
         
@@ -3265,7 +3265,7 @@ class PolymarketClient(BaseMarketClient):
                 if isinstance(trade_data, dict):
                     try:
                         trades.append(Trade.from_payload(trade_data))
-                    except Exception as e:
+                    except Exception:
                         # Skip invalid trade entries but continue processing others
                         continue
             
@@ -3279,7 +3279,7 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to get trades: {e}") from e
 
-    def get_trade(self, trade_id: str) -> Optional[Trade]:
+    def get_trade(self, trade_id: str) -> Trade | None:
         """Get a single trade by ID.
         
         Reference: https://docs.polymarket.com/developers/CLOB/trades/trades
@@ -3428,11 +3428,11 @@ class PolymarketClient(BaseMarketClient):
 
     def create_websocket_client(
         self,
-        message_callback: Optional[Callable[[str, dict[str, Any]], None]] = None,
-        user_message_callback: Optional[Callable[[Any], None]] = None,
-        market_message_callback: Optional[Callable[[Any], None]] = None,
-        error_callback: Optional[Callable[[Exception], None]] = None,
-        close_callback: Optional[Callable[[int, str], None]] = None,
+        message_callback: Callable[[str, dict[str, Any]], None] | None = None,
+        user_message_callback: Callable[[Any], None] | None = None,
+        market_message_callback: Callable[[Any], None] | None = None,
+        error_callback: Callable[[Exception], None] | None = None,
+        close_callback: Callable[[int, str], None] | None = None,
         verbose: bool = False,
     ) -> Any:  # PolymarketWebSocketClient
         """Create a WebSocket client with authentication from this client.

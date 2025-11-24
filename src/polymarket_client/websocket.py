@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import json
 import threading
 import time
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 try:
     import websocket
@@ -78,12 +79,12 @@ class PolymarketWebSocketClient:
     def __init__(
         self,
         base_url: str = "wss://ws-subscriptions-clob.polymarket.com",
-        auth: Optional[WebSocketAuth] = None,
-        message_callback: Optional[Callable[[str, dict[str, Any]], None]] = None,
-        user_message_callback: Optional[Callable[[WebSocketUserMessage], None]] = None,
-        market_message_callback: Optional[Callable[[WebSocketMarketMessage], None]] = None,
-        error_callback: Optional[Callable[[Exception], None]] = None,
-        close_callback: Optional[Callable[[int, str], None]] = None,
+        auth: WebSocketAuth | None = None,
+        message_callback: Callable[[str, dict[str, Any]], None] | None = None,
+        user_message_callback: Callable[[WebSocketUserMessage], None] | None = None,
+        market_message_callback: Callable[[WebSocketMarketMessage], None] | None = None,
+        error_callback: Callable[[Exception], None] | None = None,
+        close_callback: Callable[[int, str], None] | None = None,
         verbose: bool = False,
     ) -> None:
         """Initialize WebSocket client.
@@ -113,8 +114,8 @@ class PolymarketWebSocketClient:
         self.close_callback = close_callback
         self.verbose = verbose
         
-        self._market_ws: Optional[WebSocketApp] = None
-        self._user_ws: Optional[WebSocketApp] = None
+        self._market_ws: WebSocketApp | None = None
+        self._user_ws: WebSocketApp | None = None
         self._ping_threads: dict[str, threading.Thread] = {}
         self._running = False
     
@@ -285,7 +286,7 @@ class PolymarketWebSocketClient:
     
     def connect_user_channel(
         self,
-        markets: Optional[list[str]] = None,
+        markets: list[str] | None = None,
     ) -> None:
         """Connect to the user channel for real-time order and trade updates.
         
