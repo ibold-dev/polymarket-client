@@ -2235,58 +2235,41 @@ class PolymarketClient(BaseMarketClient):
         if self._is_read_only:
             raise PolymarketClientError("Cannot get order: client is read-only. Provide private_key to enable authenticated operations.")
 
-        if httpx is None:
-            raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
-
         try:
             # Set API credentials (required for L2 Header)
+            # get_order() requires API credentials, not just private key
             try:
                 api_creds = self._clob_client.create_or_derive_api_creds()
                 self._clob_client.set_api_creds(api_creds)
             except Exception as e:
                 raise PolymarketClientError(f"Failed to set API credentials for get_order: {e}") from e
             
-            # Get order from CLOB API
+            # Use CLOB client's get_order method which handles authentication automatically
             # Reference: GET /<clob-endpoint>/data/order/<order_hash>
-            url = f"{self._base_url}/data/order/{order_id}"
-            
-            # Get auth headers from clob client if available
-            headers = {"accept": "application/json"}
-            if hasattr(self._clob_client, "get_auth_headers"):
-                auth_headers = self._clob_client.get_auth_headers()
-                headers.update(auth_headers)
-            elif hasattr(self._clob_client, "_get_headers"):
-                auth_headers = self._clob_client._get_headers()
-                headers.update(auth_headers)
-            
-            with httpx.Client(timeout=self._timeout) as client:
-                response = client.get(url, headers=headers)
-                
-                # 404 means order doesn't exist
-                if response.status_code == 404:
+            try:
+                order_data = self._clob_client.get_order(order_id)
+            except Exception as e:
+                # Handle 404 or other errors - check if it's a "not found" error
+                error_str = str(e).lower()
+                if "404" in error_str or "not found" in error_str:
                     return None
-                
-                response.raise_for_status()
-                response_data = response.json()
+                raise PolymarketClientError(f"Failed to get order from CLOB client: {e}") from e
 
-            # Parse response - API returns { "order": OpenOrder } or just OpenOrder
-            if response_data is None:
+            # Handle None response (order doesn't exist)
+            if order_data is None:
                 return None
-            
-            # Response might be wrapped in "order" key or be the order directly
-            if isinstance(response_data, dict):
-                order_data = response_data.get("order", response_data)
-                if not order_data or not isinstance(order_data, dict):
+
+            # Parse response - CLOB client may return dict or wrapped response
+            if isinstance(order_data, dict):
+                # Response might be wrapped in "order" key or be the order directly
+                order_dict = order_data.get("order", order_data)
+                if not order_dict or not isinstance(order_dict, dict):
                     return None
-                return OpenOrder.from_payload(order_data)
+                return OpenOrder.from_payload(order_dict)
             else:
                 # Handle non-dict response
                 return None
 
-        except httpx.HTTPError as e:
-            if hasattr(e, "response") and e.response is not None and e.response.status_code == 404:
-                return None
-            raise PolymarketClientError(f"Failed to fetch order {order_id}: {e}") from e
         except PolymarketClientError:
             # Re-raise PolymarketClientError as-is
             raise
