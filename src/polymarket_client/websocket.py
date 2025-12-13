@@ -247,7 +247,7 @@ class PolymarketWebSocketClient:
         def on_open(ws: WebSocketApp) -> None:
             # Send subscription message
             subscription = {
-                "assets_ids": asset_ids,
+                "asset_ids": asset_ids,  # Note: API expects "asset_ids" (singular "asset")
                 "type": self.MARKET_CHANNEL.upper(),
             }
             ws.send(json.dumps(subscription))
