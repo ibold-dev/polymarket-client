@@ -96,7 +96,7 @@ class OrderRequest:
     price: float
     size: float
     order_type: str = "GTC"  # "FOK", "FAK", "GTC", or "GTD"
-    expiration: int | str | None = None  # Unix timestamp (required for GTD orders, accepts int or string)
+    expiration: int | None = None  # Unix timestamp (required for GTD orders)
     
     def __post_init__(self) -> None:
         """Validate order request parameters."""
@@ -254,4 +254,3 @@ __all__ = [
     "OrderRequest",
     "OrderResponse",
 ]
-

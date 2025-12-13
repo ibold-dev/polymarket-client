@@ -12,19 +12,13 @@ except ImportError:
     ClobClient = None  # type: ignore[assignment, misc]
 
 try:
-    from py_clob_client.clob_types import ApiCreds, AssetType, BalanceAllowanceParams, BookParams, MarketOrderArgs, OpenOrderParams, OrderArgs, OrderType, PostOrdersArgs, TradeParams
+    from py_clob_client.clob_types import BookParams, OrderArgs, OrderType, PostOrdersArgs
     from py_clob_client.order_builder.constants import BUY, SELL
 except ImportError:
-    ApiCreds = None  # type: ignore[assignment, misc]
-    AssetType = None  # type: ignore[assignment, misc]
-    BalanceAllowanceParams = None  # type: ignore[assignment, misc]
     BookParams = None  # type: ignore[assignment, misc]
-    MarketOrderArgs = None  # type: ignore[assignment, misc]
-    OpenOrderParams = None  # type: ignore[assignment, misc]
     OrderArgs = None  # type: ignore[assignment, misc]
     OrderType = None  # type: ignore[assignment, misc]
     PostOrdersArgs = None  # type: ignore[assignment, misc]
-    TradeParams = None  # type: ignore[assignment, misc]
     BUY = "BUY"
     SELL = "SELL"
 
@@ -114,10 +108,6 @@ class PolymarketClient(BaseMarketClient):
         chain_id: int = 137,  # Polygon Mainnet
         funder: str | None = None,
         signature_type: int | None = None,
-        api_creds: Any | None = None,  # ApiCreds object from py-clob-client
-        builder_config: Any | None = None,  # BuilderConfig object from py-builder-signing-sdk
-        readonly_api_key: str | None = None,  # Readonly API key for querying orders without private key
-        address: str | None = None,  # Wallet address (required with readonly_api_key, or auto-derived from private_key)
         timeout: int = 10,
         rpc_url: str | None = None,
         exchange_contract_address: str | None = None,
@@ -127,18 +117,10 @@ class PolymarketClient(BaseMarketClient):
         Args:
             base_url: Base URL for the Polymarket CLOB API.
             private_key: Private key for authenticated operations (required for write ops).
-            chain_id: Blockchain chain ID (137 for Polygon Mainnet, 80001 for Mumbai testnet, 80002 for Amoy).
+            chain_id: Blockchain chain ID (137 for Polygon Mainnet, 80001 for Mumbai testnet).
             funder: Funder address (Polymarket Proxy address, optional).
             signature_type: Signature type (1 for email/Magic, 2 for browser wallet, None for EOA).
-                If funder is provided and signature_type is None, defaults to 1.
-            api_creds: Pre-existing ApiCreds object from py-clob-client. If provided, these credentials
-                will be used instead of deriving them. Useful when you already have API credentials.
-            builder_config: BuilderConfig object from py-builder-signing-sdk. Used for builder-based
-                order signing and trade execution. Required for get_builder_trades() and builder-related operations.
-            readonly_api_key: Readonly API key for querying orders without private key authentication.
-                When provided with address, allows querying orders using POLY_READONLY_API_KEY header.
-            address: Wallet address. If readonly_api_key is provided, address is required.
-                If private_key is provided, address will be auto-derived from private_key.
+                If funder is provided and signature_type is None, defaults to 2.
             timeout: Request timeout in seconds.
             rpc_url: Optional RPC URL for blockchain queries (for OrderFilled event parsing).
                 If not provided, defaults to public Polygon RPC.
@@ -154,15 +136,6 @@ class PolymarketClient(BaseMarketClient):
             - 2: Browser wallet (MetaMask, Coinbase Wallet, etc., with funder)
             - None/0: Direct EOA trading (no funder)
             
-            If api_creds is provided, it will be passed directly to ClobClient and credentials
-            will not be derived. This matches the pattern: ClobClient(host, key=key, creds=creds).
-            
-            If builder_config is provided, it will be passed directly to ClobClient for builder-based operations.
-            This matches the pattern: ClobClient(host, key=key, creds=creds, builder_config=builder_config).
-            
-            If readonly_api_key and address are provided, you can query orders without private_key using
-            the POLY_READONLY_API_KEY and POLY_ADDRESS headers.
-            
             For OrderFilled event parsing, web3 library and rpc_url are required.
         """
         if ClobClient is None:
@@ -175,31 +148,13 @@ class PolymarketClient(BaseMarketClient):
         self._private_key = private_key
         self._chain_id = chain_id
         self._funder = funder
-        self._api_creds = api_creds  # Store pre-existing API credentials if provided
-        self._builder_config = builder_config  # Store builder config if provided
-        self._readonly_api_key = readonly_api_key  # Store readonly API key if provided
-        # Determine address: use provided address, or derive from private_key if available
-        if address:
-            self._address = address
-        elif private_key:
-            # Derive address from private key
-            try:
-                from eth_account import Account
-                account = Account.from_key(private_key)
-                self._address = account.address
-            except Exception:
-                self._address = None
-        else:
-            self._address = None
-        # Default to signature_type=1 (email/Magic) if funder is provided but signature_type is not
-        # This matches the official py-clob-client examples
+        # Default to signature_type=2 if funder is provided but signature_type is not
         if funder and signature_type is None:
-            self._signature_type = 1
+            self._signature_type = 2
         else:
             self._signature_type = signature_type
         self._client: ClobClient | None = None
         self._is_read_only = private_key is None
-        self._api_creds_set = False  # Track if API credentials have been set
         
         # Web3 setup for onchain event parsing
         self._rpc_url = rpc_url or self._get_default_rpc_url(chain_id)
@@ -208,7 +163,7 @@ class PolymarketClient(BaseMarketClient):
 
     @property
     def _clob_client(self) -> ClobClient:
-        """Get or create CLOB client with cached API credentials."""
+        """Get or create CLOB client."""
         if self._client is None:
             kwargs: dict[str, Any] = {}
             if self._private_key:
@@ -218,41 +173,9 @@ class PolymarketClient(BaseMarketClient):
                 kwargs["funder"] = self._funder
             if self._signature_type is not None:
                 kwargs["signature_type"] = self._signature_type
-            # If pre-existing API credentials are provided, pass them directly to ClobClient
-            if self._api_creds is not None:
-                kwargs["creds"] = self._api_creds
-            # If builder config is provided, pass it directly to ClobClient
-            if self._builder_config is not None:
-                kwargs["builder_config"] = self._builder_config
 
             self._client = ClobClient(self._base_url, **kwargs)
-            
-            # Set API credentials once if authenticated and not already provided
-            if not self._is_read_only and not self._api_creds_set and self._api_creds is None:
-                try:
-                    api_creds = self._client.create_or_derive_api_creds()
-                    self._client.set_api_creds(api_creds)
-                    self._api_creds_set = True
-                except Exception:
-                    # Will be set when needed in individual methods
-                    pass
-            elif self._api_creds is not None:
-                # If pre-existing creds were provided, mark as set
-                self._api_creds_set = True
         return self._client
-    
-    def _ensure_api_creds(self) -> None:
-        """Ensure API credentials are set for authenticated operations."""
-        if self._is_read_only:
-            return
-        
-        if not self._api_creds_set:
-            try:
-                api_creds = self._clob_client.create_or_derive_api_creds()
-                self._clob_client.set_api_creds(api_creds)
-                self._api_creds_set = True
-            except Exception as e:
-                raise PolymarketClientError(f"Failed to set API credentials: {e}") from e
     
     @staticmethod
     def _get_default_rpc_url(chain_id: int) -> str:
@@ -339,49 +262,19 @@ class PolymarketClient(BaseMarketClient):
         self,
         params: GetMarketsParams | None = None,
     ) -> list[Market]:
-        """Fetch markets from the CLOB API or Gamma API.
+        """Fetch markets from the Gamma API.
         
-        First tries to use py-clob-client's get_markets() method (CLOB API).
-        If that's not available or fails, falls back to Gamma API.
-        
-        Reference: 
-        - py-clob-client get_markets() method (CLOB API)
-        - https://docs.polymarket.com/developers/gamma-markets-api/get-markets (Gamma API)
+        Reference: https://docs.polymarket.com/developers/gamma-markets-api/get-markets
 
         Args:
-            params: Optional query parameters for filtering and sorting markets (for Gamma API).
-                Note: py-clob-client's get_markets() may not accept params.
+            params: Optional query parameters for filtering and sorting markets.
 
         Returns:
-            List of market data. If using CLOB API, returns raw response from py-clob-client.
-            If using Gamma API, returns parsed Market objects.
+            List of market data matching the Gamma API response schema.
 
         Raises:
             PolymarketClientError: When fetching markets fails.
         """
-        # Try py-clob-client's get_markets() first (CLOB API)
-        if hasattr(self._clob_client, "get_markets"):
-            try:
-                clob_markets = self._clob_client.get_markets()
-                # If it returns a list, try to parse as Market objects
-                if isinstance(clob_markets, list):
-                    try:
-                        return [
-                            Market.from_payload(market) 
-                            for market in clob_markets 
-                            if isinstance(market, dict)
-                        ]
-                    except Exception:
-                        # If parsing fails, return raw data
-                        return clob_markets  # type: ignore[return-value]
-                else:
-                    # Return raw response if not a list
-                    return clob_markets  # type: ignore[return-value]
-            except Exception:
-                # Fall through to Gamma API if CLOB API fails
-                pass
-        
-        # Fallback to Gamma API
         if httpx is None:
             raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
 
@@ -448,22 +341,10 @@ class PolymarketClient(BaseMarketClient):
         Raises:
             PolymarketClientError: When fetching the order book fails.
         """
-        try:
-            # Try to use py-clob-client's get_order_book() method if available
-            if hasattr(self._clob_client, "get_order_book"):
-                try:
-                    order_book_data = self._clob_client.get_order_book(market_id)
-                    # Parse the response using OrderBook.from_payload
-                    order_book = OrderBook.from_payload(order_book_data)
-                    return order_book  # type: ignore[return-value]
-                except Exception:
-                    # Fall through to HTTP implementation if py-clob-client method fails
-                    pass
-            
-            # Fallback: Direct HTTP call if py-clob-client doesn't have get_order_book() or it failed
-            if httpx is None:
-                raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
+        if httpx is None:
+            raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
 
+        try:
             # Use direct CLOB API endpoint: https://clob.polymarket.com/book?token_id=...
             url = "https://clob.polymarket.com/book"
             params = {"token_id": market_id}
@@ -479,8 +360,6 @@ class PolymarketClient(BaseMarketClient):
         except httpx.HTTPError as e:
             raise PolymarketClientError(f"Failed to fetch order book for {market_id}: {e}") from e
         except Exception as e:
-            if isinstance(e, PolymarketClientError):
-                raise
             raise PolymarketClientError(f"Failed to parse order book for {market_id}: {e}") from e
 
     def get_order_books(self, token_ids: list[str]) -> list[OrderBook]:
@@ -506,132 +385,22 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to fetch order books: {e}") from e
 
-    def get_order_book_hash(self, orderbook: BaseOrderBook | dict[str, Any] | Any) -> str:
-        """Get hash of an order book.
-        
-        Reference: py-clob-client get_order_book_hash() method.
-        
-        Computes a hash summary of the orderbook content, useful for verifying
-        orderbook integrity and comparing orderbook snapshots.
-
-        Args:
-            orderbook: Order book object (can be BaseOrderBook, dict, or raw py-clob-client object).
-
-        Returns:
-            Hash string representing the orderbook content.
-
-        Raises:
-            PolymarketClientError: When computing the hash fails.
-        """
-        try:
-            # Try to use py-clob-client's get_order_book_hash() method if available
-            if hasattr(self._clob_client, "get_order_book_hash"):
-                # Convert our BaseOrderBook to dict if needed, or pass through
-                if isinstance(orderbook, dict):
-                    hash_result = self._clob_client.get_order_book_hash(orderbook)
-                else:
-                    # Convert BaseOrderBook to dict format expected by py-clob-client
-                    if hasattr(orderbook, "__dict__"):
-                        # Convert to dict format
-                        orderbook_dict = {
-                            "bids": [
-                                [float(level.price), float(level.quantity)]
-                                for level in (orderbook.bids if hasattr(orderbook, "bids") else [])
-                            ],
-                            "asks": [
-                                [float(level.price), float(level.quantity)]
-                                for level in (orderbook.asks if hasattr(orderbook, "asks") else [])
-                            ],
-                        }
-                        hash_result = self._clob_client.get_order_book_hash(orderbook_dict)
-                    else:
-                        # Pass through raw object
-                        hash_result = self._clob_client.get_order_book_hash(orderbook)
-                
-                return str(hash_result) if hash_result is not None else ""
-            else:
-                # Fallback: if py-clob-client doesn't have this method, raise error
-                raise PolymarketClientError(
-                    "get_order_book_hash() is not available. "
-                    "This method requires py-clob-client library."
-                )
-        except Exception as e:
-            if isinstance(e, PolymarketClientError):
-                raise
-            raise PolymarketClientError(f"Failed to compute order book hash: {e}") from e
-
-    def get_midpoint(self, token_id: str) -> dict[str, Any]:
+    def get_midpoint(self, token_id: str) -> float:
         """Fetch the midpoint price for a market.
-        
-        Reference: py-clob-client get_midpoint() method.
-        
-        Returns the midpoint price as a dictionary with 'mid' key, matching py-clob-client's API.
 
         Args:
             token_id: The market token ID.
 
         Returns:
-            Dictionary with midpoint price, e.g., {'mid': '0.55'}.
+            Midpoint price.
 
         Raises:
             PolymarketClientError: When fetching the midpoint fails.
         """
         try:
-            result = self._clob_client.get_midpoint(token_id)
-            # Return raw response from py-clob-client (should be dict like {'mid': '0.55'})
-            if isinstance(result, dict):
-                return result
-            else:
-                # If it's not a dict, wrap it (shouldn't happen but handle gracefully)
-                return {"mid": str(result)}
+            return float(self._clob_client.get_midpoint(token_id))
         except Exception as e:
             raise PolymarketClientError(f"Failed to fetch midpoint for {token_id}: {e}") from e
-
-    def get_midpoints(
-        self,
-        params: list[Any],  # list[BookParams] from py-clob-client
-    ) -> list[dict[str, Any]]:
-        """Fetch midpoint prices for multiple markets.
-        
-        Reference: py-clob-client get_midpoints() method.
-        
-        Gets midpoint prices for multiple markets in a single request using BookParams.
-
-        Args:
-            params: List of BookParams objects, each containing a token_id.
-
-        Returns:
-            List of dictionaries with midpoint prices, e.g., [{'mid': '0.55'}, {'mid': '0.45'}].
-
-        Raises:
-            PolymarketClientError: When fetching midpoints fails.
-        """
-        if BookParams is None:
-            raise PolymarketClientError("BookParams not available. Ensure py-clob-client is properly installed.")
-        
-        if not params:
-            raise ValueError("params cannot be empty. Provide at least one BookParams object.")
-        
-        try:
-            # Use py-clob-client's get_midpoints() method
-            if hasattr(self._clob_client, "get_midpoints"):
-                return self._clob_client.get_midpoints(params)
-            else:
-                # Fallback: fetch individually if batch method not available
-                results: list[dict[str, Any]] = []
-                for book_param in params:
-                    if hasattr(book_param, "token_id"):
-                        token_id = book_param.token_id
-                    elif isinstance(book_param, dict):
-                        token_id = book_param.get("token_id", "")
-                    else:
-                        raise ValueError(f"Invalid BookParams object: {book_param}")
-                    
-                    midpoint = self.get_midpoint(token_id)
-                    results.append(midpoint)
-                return results
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to fetch midpoints: {e}") from e
 
     def get_price(self, token_id: str, side: Literal["BUY", "SELL"] = "BUY") -> float:
         """Fetch the best price for a market on a specific side.
@@ -650,90 +419,6 @@ class PolymarketClient(BaseMarketClient):
             return float(self._clob_client.get_price(token_id, side=side))
         except Exception as e:
             raise PolymarketClientError(f"Failed to fetch price for {token_id} (side={side}): {e}") from e
-
-    def get_last_trade_price(self, token_id: str) -> dict[str, Any]:
-        """Get the last trade price for a market.
-        
-        Reference: py-clob-client get_last_trade_price() method.
-        
-        Args:
-            token_id: The market token ID.
-        
-        Returns:
-            Dictionary with last trade price information.
-        
-        Raises:
-            PolymarketClientError: When fetching last trade price fails.
-        """
-        try:
-            return self._clob_client.get_last_trade_price(token_id)
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to fetch last trade price for {token_id}: {e}") from e
-
-    def get_simplified_markets(self) -> dict[str, Any]:
-        """Get simplified market data from the CLOB API.
-        
-        Reference: py-clob-client get_simplified_markets() method.
-        
-        Returns:
-            Dictionary with simplified market data. The response structure is:
-            {
-                "data": [
-                    {
-                        "token_id": "...",
-                        "market": "...",
-                        "question": "...",
-                        ...
-                    },
-                    ...
-                ]
-            }
-        
-        Raises:
-            PolymarketClientError: When fetching simplified markets fails.
-        """
-        try:
-            return self._clob_client.get_simplified_markets()
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to fetch simplified markets: {e}") from e
-
-    def get_sampling_markets(self) -> dict[str, Any]:
-        """Get sampling markets from the CLOB API.
-        
-        Reference: py-clob-client get_sampling_markets() method.
-        
-        Returns:
-            Dictionary with sampling market data from the CLOB API.
-        
-        Raises:
-            PolymarketClientError: When fetching sampling markets fails.
-        """
-        try:
-            if hasattr(self._clob_client, "get_sampling_markets"):
-                return self._clob_client.get_sampling_markets()
-            else:
-                raise PolymarketClientError("get_sampling_markets() method not available in py-clob-client. Ensure you have the latest version.")
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to fetch sampling markets: {e}") from e
-
-    def get_sampling_simplified_markets(self) -> dict[str, Any]:
-        """Get sampling simplified markets from the CLOB API.
-        
-        Reference: py-clob-client get_sampling_simplified_markets() method.
-        
-        Returns:
-            Dictionary with sampling simplified market data from the CLOB API.
-        
-        Raises:
-            PolymarketClientError: When fetching sampling simplified markets fails.
-        """
-        try:
-            if hasattr(self._clob_client, "get_sampling_simplified_markets"):
-                return self._clob_client.get_sampling_simplified_markets()
-            else:
-                raise PolymarketClientError("get_sampling_simplified_markets() method not available in py-clob-client. Ensure you have the latest version.")
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to fetch sampling simplified markets: {e}") from e
 
     def get_market_by_slug(self, slug: str) -> Market | None:
         """Fetch market data from Gamma API by slug.
@@ -2005,9 +1690,13 @@ class PolymarketClient(BaseMarketClient):
             raise PolymarketClientError("py-clob-client types not available. Ensure py-clob-client is properly installed.")
         
         try:
-            # Ensure API credentials are set (required for authenticated operations)
+            # Set API credentials (required for authenticated operations)
             # Reference: https://docs.polymarket.com/developers/CLOB/orders/create-order
-            self._ensure_api_creds()
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials: {e}") from e
             
             # Convert OrderRequest to OrderArgs
             side_value = BUY if order.side.upper() == "BUY" else SELL
@@ -2020,14 +1709,7 @@ class PolymarketClient(BaseMarketClient):
             # Handle expiration for GTD orders
             # GTD orders require expiration with 1 minute security threshold
             # If expiration is None, use 0 (which works for GTC/FOK/FAK)
-            # Support both int and string expiration values (convert string to int)
-            if order.expiration is not None:
-                if isinstance(order.expiration, str):
-                    expiration = int(order.expiration)
-                else:
-                    expiration = int(order.expiration)
-            else:
-                expiration = 0
+            expiration = order.expiration if order.expiration is not None else 0
 
             order_args = OrderArgs(
                 token_id=order.token_id,
@@ -2138,8 +1820,12 @@ class PolymarketClient(BaseMarketClient):
             raise ValueError("Cannot place empty batch. Provide at least one order.")
         
         try:
-            # Ensure API credentials are set (required for authenticated operations)
-            self._ensure_api_creds()
+            # Set API credentials (required for authenticated operations)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials: {e}") from e
             
             # Convert each OrderRequest to PostOrdersArgs
             post_orders_args: list[PostOrdersArgs] = []
@@ -2148,14 +1834,7 @@ class PolymarketClient(BaseMarketClient):
                 # Convert OrderRequest to OrderArgs
                 side_value = BUY if order.side.upper() == "BUY" else SELL
                 order_price = order.price if order.price > 0 else 0.0
-                # Support both int and string expiration values (convert string to int)
-                if order.expiration is not None:
-                    if isinstance(order.expiration, str):
-                        expiration = int(order.expiration)
-                    else:
-                        expiration = int(order.expiration)
-                else:
-                    expiration = 0
+                expiration = order.expiration if order.expiration is not None else 0
 
                 order_args = OrderArgs(
                     token_id=order.token_id,
@@ -2185,7 +1864,6 @@ class PolymarketClient(BaseMarketClient):
                     raise PolymarketClientError(f"Invalid order_type: {order.order_type}. Must be FOK, FAK, GTC, or GTD")
                 
                 # Create PostOrdersArgs for batch
-                # Note: PostOrdersArgs uses 'order' field (not 'signed_order' despite example naming)
                 post_order_arg = PostOrdersArgs(
                     order=signed_order,
                     orderType=order_type_enum,
@@ -2251,261 +1929,12 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to place batch orders: {e}") from e
 
-    # Direct py-clob-client API wrappers for full compatibility
-    def create_order(self, order_args: Any) -> dict[str, Any]:
-        """Create and sign an order (direct py-clob-client wrapper).
-        
-        This method provides direct access to py-clob-client's create_order() method
-        for users who want to use the exact py-clob-client API. This matches the
-        pattern shown in py-clob-client examples.
-        
-        Reference: py-clob-client create_order() method.
-        
-        Example:
-            ```python
-            from py_clob_client.clob_types import OrderArgs
-            from py_clob_client.order_builder.constants import BUY
-            
-            order_args = OrderArgs(
-                price=0.5,
-                size=100,
-                side=BUY,
-                token_id="71321045679252212594626385532706912750332728571942532289631379312455583992563",
-            )
-            signed_order = client.create_order(order_args)
-            ```
-        
-        Args:
-            order_args: OrderArgs object from py-clob-client containing order parameters.
-        
-        Returns:
-            Signed order dictionary ready to be posted via post_order().
-        
-        Raises:
-            PolymarketClientError: When creating/signing order fails.
-            ValueError: If client is read-only.
-        """
-        if self._is_read_only:
-            raise PolymarketClientError("Cannot create order: client is read-only. Provide private_key to enable write operations.")
-        
-        if OrderArgs is None:
-            raise PolymarketClientError("py-clob-client types not available. Ensure py-clob-client is properly installed.")
-        
-        try:
-            self._ensure_api_creds()
-            return self._clob_client.create_order(order_args)
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to create/sign order: {e}") from e
-
-    def post_order(self, signed_order: dict[str, Any], order_type: Any | None = None) -> dict[str, Any]:
-        """Post a signed order (direct py-clob-client wrapper).
-        
-        This method provides direct access to py-clob-client's post_order() method
-        for users who want to use the exact py-clob-client API. This matches the
-        pattern shown in py-clob-client examples.
-        
-        Reference: py-clob-client post_order() method.
-        
-        Example:
-            ```python
-            from py_clob_client.clob_types import OrderType
-            
-            signed_order = client.create_order(order_args)
-            resp = client.post_order(signed_order, OrderType.GTC)
-            ```
-        
-        Args:
-            signed_order: Signed order dictionary from create_order().
-            order_type: Optional OrderType enum from py-clob-client (GTC, FOK, FAK, GTD).
-                If not provided, defaults to GTC.
-        
-        Returns:
-            Order response dictionary from the API.
-        
-        Raises:
-            PolymarketClientError: When posting order fails.
-            ValueError: If client is read-only.
-        """
-        if self._is_read_only:
-            raise PolymarketClientError("Cannot post order: client is read-only. Provide private_key to enable write operations.")
-        
-        if OrderType is None:
-            raise PolymarketClientError("py-clob-client types not available. Ensure py-clob-client is properly installed.")
-        
-        try:
-            self._ensure_api_creds()
-            # Default to GTC if order_type not provided
-            if order_type is None:
-                order_type = OrderType.GTC
-            return self._clob_client.post_order(signed_order, order_type)
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to post order: {e}") from e
-
-    def post_orders(self, orders: list[Any]) -> list[dict[str, Any]]:
-        """Post multiple signed orders in a batch (direct py-clob-client wrapper).
-        
-        This method provides direct access to py-clob-client's post_orders() method
-        for users who want to use the exact py-clob-client API. This matches the
-        pattern shown in py-clob-client examples.
-        
-        Reference: py-clob-client post_orders() method.
-        
-        Example:
-            ```python
-            from py_clob_client.clob_types import PostOrdersArgs, OrderType
-            
-            orders = [
-                PostOrdersArgs(
-                    signed_order=client.create_order(order_args1),
-                    orderType=OrderType.GTC,
-                ),
-                PostOrdersArgs(
-                    signed_order=client.create_order(order_args2),
-                    orderType=OrderType.GTC,
-                ),
-            ]
-            resp = client.post_orders(orders)
-            ```
-        
-        Args:
-            orders: List of PostOrdersArgs objects from py-clob-client.
-        
-        Returns:
-            List of order response dictionaries from the API.
-        
-        Raises:
-            PolymarketClientError: When posting orders fails.
-            ValueError: If client is read-only or batch size exceeds 15.
-        """
-        if self._is_read_only:
-            raise PolymarketClientError("Cannot post orders: client is read-only. Provide private_key to enable write operations.")
-        
-        if PostOrdersArgs is None:
-            raise PolymarketClientError("py-clob-client types not available. Ensure py-clob-client is properly installed.")
-        
-        # Validate batch size (max 15 orders per batch)
-        if len(orders) > 15:
-            raise ValueError(f"Batch size exceeds maximum of 15 orders. Received {len(orders)} orders.")
-        
-        if len(orders) == 0:
-            raise ValueError("Cannot post empty batch. Provide at least one order.")
-        
-        try:
-            self._ensure_api_creds()
-            return self._clob_client.post_orders(orders)
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to post orders: {e}") from e
-
-    def place_market_order(
-        self,
-        token_id: str,
-        amount: float,
-        side: Literal["BUY", "SELL"],
-        order_type: Literal["FOK", "FAK"] = "FOK",
-    ) -> OrderResponse:
-        """Place a market order (buy/sell by dollar amount).
-        
-        Reference: https://docs.polymarket.com/developers/CLOB/orders/create-order
-        
-        Market orders execute immediately at the best available price. This is a convenience
-        method that wraps py-clob-client's create_market_order() method.
-        
-        Args:
-            token_id: The market token ID.
-            amount: Dollar amount to buy/sell (e.g., 25.0 for $25).
-            side: Order side ("BUY" or "SELL").
-            order_type: Order type, either "FOK" (Fill-Or-Kill) or "FAK" (Fill-And-Kill).
-                Defaults to "FOK".
-        
-        Returns:
-            OrderResponse with order details.
-        
-        Raises:
-            PolymarketClientError: When placing order fails.
-            ValueError: If client is read-only or parameters are invalid.
-        """
-        if self._is_read_only:
-            raise PolymarketClientError("Cannot place market order: client is read-only. Provide private_key to enable write operations.")
-        
-        if MarketOrderArgs is None or OrderType is None:
-            raise PolymarketClientError("py-clob-client types not available. Ensure py-clob-client is properly installed.")
-        
-        try:
-            self._ensure_api_creds()
-            
-            # Convert side string to py-clob-client constant
-            side_value = BUY if side.upper() == "BUY" else SELL
-            
-            # Map order_type string to OrderType enum
-            order_type_upper = order_type.upper()
-            if order_type_upper == "FOK":
-                order_type_enum = OrderType.FOK
-            elif order_type_upper == "FAK":
-                order_type_enum = OrderType.FAK
-            else:
-                raise ValueError(f"Invalid order_type for market order: {order_type}. Must be FOK or FAK")
-            
-            # Create market order args
-            market_order_args = MarketOrderArgs(
-                token_id=token_id,
-                amount=amount,
-                side=side_value,
-                order_type=order_type_enum,
-            )
-            
-            # Create and sign the market order
-            try:
-                signed_order = self._clob_client.create_market_order(market_order_args)
-            except Exception as e:
-                raise PolymarketClientError(f"Failed to create/sign market order: {e}") from e
-            
-            # Post the order to the CLOB API
-            try:
-                response = self._clob_client.post_order(signed_order, order_type_enum)
-            except Exception as e:
-                raise PolymarketClientError(f"Failed to post market order: {e}") from e
-            
-            # Parse response
-            if isinstance(response, dict):
-                success = bool(response.get("success", True))
-                error_msg = str(response.get("errorMsg", response.get("error_msg", "")))
-                order_id = str(response.get("orderId", response.get("orderID", response.get("order_id", ""))))
-                order_hashes_raw = response.get("orderHashes", response.get("order_hashes", []))
-                order_hashes = [str(hash_val) for hash_val in order_hashes_raw] if isinstance(order_hashes_raw, list) else []
-                status = str(response.get("status", "unknown"))
-            else:
-                # Handle object response
-                success = bool(getattr(response, "success", True))
-                error_msg = str(getattr(response, "errorMsg", getattr(response, "error_msg", "")))
-                order_id = str(getattr(response, "orderId", getattr(response, "orderID", getattr(response, "order_id", ""))))
-                order_hashes_attr = getattr(response, "orderHashes", getattr(response, "order_hashes", []))
-                order_hashes = [str(hash_val) for hash_val in order_hashes_attr] if isinstance(order_hashes_attr, list) else []
-                status = str(getattr(response, "status", "unknown"))
-            
-            return OrderResponse(
-                success=success,
-                error_msg=error_msg,
-                order_id=order_id,
-                order_hashes=order_hashes,
-                status=status,
-                raw_response=response if isinstance(response, dict) else {"response": str(response)},
-            )
-        
-        except PolymarketClientError:
-            raise
-        except ValueError:
-            raise
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to place market order: {e}") from e
-
     def cancel_order(self, order_id: str) -> CancelOrdersResponse:
         """Cancel a single order.
         
         Reference: https://docs.polymarket.com/developers/CLOB/orders/cancel-orders
         
         This endpoint requires a L2 Header (API credentials).
-        
-        Uses py-clob-client's cancel() method if available, otherwise falls back to direct HTTP call.
 
         Args:
             order_id: The order identifier to cancel.
@@ -2522,32 +1951,16 @@ class PolymarketClient(BaseMarketClient):
         if self._is_read_only:
             raise PolymarketClientError("Cannot cancel order: client is read-only. Provide private_key to enable write operations.")
 
+        if httpx is None:
+            raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
+
         try:
-            # Ensure API credentials are set (required for L2 Header)
-            self._ensure_api_creds()
-            
-            # Try to use py-clob-client's cancel() method if available
-            if hasattr(self._clob_client, "cancel"):
-                try:
-                    response = self._clob_client.cancel(order_id)
-                    # Parse response - py-clob-client may return dict or object
-                    if isinstance(response, dict):
-                        return CancelOrdersResponse.from_payload(response)
-                    else:
-                        # Handle object response
-                        canceled = getattr(response, "canceled", getattr(response, "cancelled", []))
-                        not_canceled = getattr(response, "not_canceled", getattr(response, "notCanceled", getattr(response, "not_cancelled", {})))
-                        return CancelOrdersResponse(
-                            canceled=[str(id) for id in canceled] if isinstance(canceled, list) else [],
-                            not_canceled={str(k): str(v) for k, v in not_canceled.items()} if isinstance(not_canceled, dict) else {},
-                        )
-                except Exception:
-                    # Fall through to HTTP implementation if py-clob-client method fails
-                    pass
-            
-            # Fallback: Direct HTTP call if py-clob-client doesn't have cancel() or it failed
-            if httpx is None:
-                raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
+            # Set API credentials (required for L2 Header)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for cancel_order: {e}") from e
             
             # Cancel order from CLOB API
             # Reference: DELETE /<clob-endpoint>/order
@@ -2582,27 +1995,12 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to cancel order {order_id}: {e}") from e
 
-    def cancel(self, order_id: str) -> CancelOrdersResponse:
-        """Cancel a single order (alias for cancel_order).
-        
-        This method matches py-clob-client's cancel() API for convenience.
-        
-        Args:
-            order_id: The order identifier to cancel.
-
-        Returns:
-            CancelOrdersResponse with cancellation results.
-        """
-        return self.cancel_order(order_id)
-
     def cancel_orders(self, order_ids: list[str]) -> CancelOrdersResponse:
         """Cancel multiple orders.
         
         Reference: https://docs.polymarket.com/developers/CLOB/orders/cancel-orders
         
         This endpoint requires a L2 Header (API credentials).
-        
-        Uses py-clob-client's cancel_orders() method if available, otherwise falls back to direct HTTP call.
 
         Args:
             order_ids: List of order identifiers to cancel.
@@ -2618,35 +2016,19 @@ class PolymarketClient(BaseMarketClient):
         if self._is_read_only:
             raise PolymarketClientError("Cannot cancel orders: client is read-only. Provide private_key to enable write operations.")
 
+        if httpx is None:
+            raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
+
         if not order_ids:
             raise ValueError("order_ids cannot be empty")
 
         try:
-            # Ensure API credentials are set (required for L2 Header)
-            self._ensure_api_creds()
-            
-            # Try to use py-clob-client's cancel_orders() method if available
-            if hasattr(self._clob_client, "cancel_orders"):
-                try:
-                    response = self._clob_client.cancel_orders(order_ids)
-                    # Parse response - py-clob-client may return dict or object
-                    if isinstance(response, dict):
-                        return CancelOrdersResponse.from_payload(response)
-                    else:
-                        # Handle object response
-                        canceled = getattr(response, "canceled", getattr(response, "cancelled", []))
-                        not_canceled = getattr(response, "not_canceled", getattr(response, "notCanceled", getattr(response, "not_cancelled", {})))
-                        return CancelOrdersResponse(
-                            canceled=[str(id) for id in canceled] if isinstance(canceled, list) else [],
-                            not_canceled={str(k): str(v) for k, v in not_canceled.items()} if isinstance(not_canceled, dict) else {},
-                        )
-                except Exception:
-                    # Fall through to HTTP implementation if py-clob-client method fails
-                    pass
-            
-            # Fallback: Direct HTTP call if py-clob-client doesn't have cancel_orders() or it failed
-            if httpx is None:
-                raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
+            # Set API credentials (required for L2 Header)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for cancel_orders: {e}") from e
             
             # Cancel orders from CLOB API
             # Reference: DELETE /<clob-endpoint>/orders
@@ -2687,8 +2069,6 @@ class PolymarketClient(BaseMarketClient):
         Reference: https://docs.polymarket.com/developers/CLOB/orders/cancel-orders
         
         This endpoint requires a L2 Header (API credentials).
-        
-        Uses py-clob-client's cancel_all() method if available, otherwise falls back to direct HTTP call.
 
         Returns:
             CancelOrdersResponse with:
@@ -2701,32 +2081,16 @@ class PolymarketClient(BaseMarketClient):
         if self._is_read_only:
             raise PolymarketClientError("Cannot cancel all orders: client is read-only. Provide private_key to enable write operations.")
 
+        if httpx is None:
+            raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
+
         try:
-            # Ensure API credentials are set (required for L2 Header)
-            self._ensure_api_creds()
-            
-            # Try to use py-clob-client's cancel_all() method if available
-            if hasattr(self._clob_client, "cancel_all"):
-                try:
-                    response = self._clob_client.cancel_all()
-                    # Parse response - py-clob-client may return dict or object
-                    if isinstance(response, dict):
-                        return CancelOrdersResponse.from_payload(response)
-                    else:
-                        # Handle object response
-                        canceled = getattr(response, "canceled", getattr(response, "cancelled", []))
-                        not_canceled = getattr(response, "not_canceled", getattr(response, "notCanceled", getattr(response, "not_cancelled", {})))
-                        return CancelOrdersResponse(
-                            canceled=[str(id) for id in canceled] if isinstance(canceled, list) else [],
-                            not_canceled={str(k): str(v) for k, v in not_canceled.items()} if isinstance(not_canceled, dict) else {},
-                        )
-                except Exception:
-                    # Fall through to HTTP implementation if py-clob-client method fails
-                    pass
-            
-            # Fallback: Direct HTTP call if py-clob-client doesn't have cancel_all() or it failed
-            if httpx is None:
-                raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
+            # Set API credentials (required for L2 Header)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for cancel_all: {e}") from e
             
             # Cancel all orders from CLOB API
             # Reference: DELETE /<clob-endpoint>/cancel-all
@@ -2762,28 +2126,20 @@ class PolymarketClient(BaseMarketClient):
 
     def cancel_market_orders(
         self,
-        market: str | None = None,
-        asset_id: str | None = None,
-        *,
-        params: CancelMarketOrdersParams | None = None,
+        params: CancelMarketOrdersParams,
     ) -> CancelOrdersResponse:
         """Cancel orders from a specific market.
         
         Reference: https://docs.polymarket.com/developers/CLOB/orders/cancel-orders
         
         This endpoint requires a L2 Header (API credentials).
-        
-        Can be called with keyword arguments (matching py-clob-client API) or with a params object:
-        - client.cancel_market_orders(market="0xaaa", asset_id="100")
-        - client.cancel_market_orders(params=CancelMarketOrdersParams(market="0xaaa", asset_id="100"))
 
         Args:
-            market: Condition id of the market (optional, can be provided via params instead).
-            asset_id: Id of the asset/token (optional, can be provided via params instead).
-            params: Optional CancelMarketOrdersParams object. If provided, market and asset_id
-                keyword arguments are ignored.
+            params: Parameters containing market and/or asset_id to filter orders:
+                - market: condition id of the market (optional)
+                - asset_id: id of the asset/token (optional)
                 
-            At least one of market or asset_id must be provided (either as kwargs or in params).
+            At least one of market or asset_id must be provided.
 
         Returns:
             CancelOrdersResponse with:
@@ -2797,53 +2153,24 @@ class PolymarketClient(BaseMarketClient):
         if self._is_read_only:
             raise PolymarketClientError("Cannot cancel market orders: client is read-only. Provide private_key to enable write operations.")
 
-        # Determine market and asset_id from params or kwargs
-        if params is not None:
-            market_value = params.market
-            asset_id_value = params.asset_id
-        else:
-            market_value = market
-            asset_id_value = asset_id
+        if httpx is None:
+            raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
 
-        if market_value is None and asset_id_value is None:
+        if params.market is None and params.asset_id is None:
             raise ValueError("At least one of market or asset_id must be provided")
 
         try:
-            # Ensure API credentials are set (required for L2 Header)
-            self._ensure_api_creds()
-            
-            # Try to use py-clob-client's cancel_market_orders() method if available
-            if hasattr(self._clob_client, "cancel_market_orders"):
-                try:
-                    # Call with keyword arguments matching py-clob-client API
-                    response = self._clob_client.cancel_market_orders(market=market_value, asset_id=asset_id_value)
-                    # Parse response - py-clob-client may return dict or object
-                    if isinstance(response, dict):
-                        return CancelOrdersResponse.from_payload(response)
-                    else:
-                        # Handle object response
-                        canceled = getattr(response, "canceled", getattr(response, "cancelled", []))
-                        not_canceled = getattr(response, "not_canceled", getattr(response, "notCanceled", getattr(response, "not_cancelled", {})))
-                        return CancelOrdersResponse(
-                            canceled=[str(id) for id in canceled] if isinstance(canceled, list) else [],
-                            not_canceled={str(k): str(v) for k, v in not_canceled.items()} if isinstance(not_canceled, dict) else {},
-                        )
-                except Exception:
-                    # Fall through to HTTP implementation if py-clob-client method fails
-                    pass
-            
-            # Fallback: Direct HTTP call if py-clob-client doesn't have cancel_market_orders() or it failed
-            if httpx is None:
-                raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
+            # Set API credentials (required for L2 Header)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for cancel_market_orders: {e}") from e
             
             # Cancel market orders from CLOB API
             # Reference: DELETE /<clob-endpoint>/cancel-market-orders
             url = f"{self._base_url}/cancel-market-orders"
-            query_params: dict[str, str] = {}
-            if market_value is not None:
-                query_params["market"] = market_value
-            if asset_id_value is not None:
-                query_params["asset_id"] = asset_id_value
+            query_params = params.to_query_params()
             
             # Get auth headers from clob client if available
             headers = {"accept": "application/json"}
@@ -2909,8 +2236,13 @@ class PolymarketClient(BaseMarketClient):
             raise PolymarketClientError("Cannot get order: client is read-only. Provide private_key to enable authenticated operations.")
 
         try:
-            # Ensure API credentials are set (required for L2 Header)
-            self._ensure_api_creds()
+            # Set API credentials (required for L2 Header)
+            # get_order() requires API credentials, not just private key
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for get_order: {e}") from e
             
             # Use CLOB client's get_order method which handles authentication automatically
             # Reference: GET /<clob-endpoint>/data/order/<order_hash>
@@ -2991,8 +2323,12 @@ class PolymarketClient(BaseMarketClient):
             raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
 
         try:
-            # Ensure API credentials are set (required for L2 Header)
-            self._ensure_api_creds()
+            # Set API credentials (required for L2 Header)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for get_active_orders: {e}") from e
             
             # Get active orders from CLOB API
             # Reference: GET /<clob-endpoint>/data/orders
@@ -3071,8 +2407,12 @@ class PolymarketClient(BaseMarketClient):
             raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
 
         try:
-            # Ensure API credentials are set (required for L2 Header)
-            self._ensure_api_creds()
+            # Set API credentials (required for L2 Header)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for is_order_scoring: {e}") from e
             
             # Check order scoring from CLOB API
             # Reference: GET /<clob-endpoint>/order-scoring?order_id={...}
@@ -3134,8 +2474,12 @@ class PolymarketClient(BaseMarketClient):
             raise ValueError("order_ids cannot be empty")
 
         try:
-            # Ensure API credentials are set (required for L2 Header)
-            self._ensure_api_creds()
+            # Set API credentials (required for L2 Header)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for are_orders_scoring: {e}") from e
             
             # Check orders scoring from CLOB API
             # Reference: POST /<clob-endpoint>/orders-scoring
@@ -3177,131 +2521,35 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to check orders scoring: {e}") from e
 
-    def get_orders(
-        self,
-        params: Any | None = None,  # OpenOrderParams from py-clob-client
-        market_id: str | None = None,
-        maker_address: str | None = None,
-    ) -> list[BaseOrder]:
+    def get_orders(self, market_id: str | None = None) -> list[BaseOrder]:
         """Fetch user's orders.
 
-        Supports two authentication methods:
-        1. With private_key: Uses API credentials (Level 2 authentication)
-        2. With readonly_api_key: Uses POLY_READONLY_API_KEY and POLY_ADDRESS headers
-
         Args:
-            params: Optional OpenOrderParams object from py-clob-client (e.g., OpenOrderParams(market="...")).
-                If provided, this takes precedence over market_id and maker_address.
-            market_id: Optional market ID to filter orders (deprecated, use params instead).
-            maker_address: Optional maker address to filter orders. If readonly_api_key is used,
-                this defaults to the address provided during initialization.
+            market_id: Optional market ID to filter orders.
 
         Returns:
             List of user's orders.
 
         Raises:
             PolymarketClientError: When fetching orders fails.
-            ValueError: If neither private_key nor readonly_api_key is available.
+            ValueError: If client is read-only.
         """
-        # Check if we can use readonly API key
-        if self._is_read_only and self._readonly_api_key and self._address:
-            # Use readonly API key authentication
-            if httpx is None:
-                raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
-            
-            try:
-                # Import ORDERS endpoint from py-clob-client if available
-                try:
-                    from py_clob_client.endpoints import ORDERS
-                    orders_endpoint = ORDERS
-                except ImportError:
-                    # Fallback to hardcoded endpoint
-                    orders_endpoint = "/orders"
-                
-                url = f"{self._base_url}{orders_endpoint}"
-                query_params: dict[str, str] = {}
-                
-                # Use provided maker_address or default to client's address
-                address_to_use = maker_address or self._address
-                if address_to_use:
-                    query_params["maker_address"] = address_to_use
-                
-                headers = {
-                    "POLY_READONLY_API_KEY": self._readonly_api_key,
-                    "POLY_ADDRESS": address_to_use or "",
-                    "Content-Type": "application/json",
-                }
-                
-                with httpx.Client(timeout=self._timeout, follow_redirects=True) as client:
-                    response = client.get(url, headers=headers, params=query_params)
-                    response.raise_for_status()
-                    orders_data = response.json()
-                
-                # Parse orders
-                if not isinstance(orders_data, list):
-                    return []
-                
-                parsed_orders: list[BaseOrder] = []
-                for order in orders_data:
-                    if isinstance(order, dict):
-                        parsed_orders.append(
-                            BaseOrder(
-                                order_id=str(order.get("orderID", order.get("order_id", ""))),
-                                token_id=str(order.get("tokenID", order.get("token_id", ""))),
-                                side=str(order.get("side", "")),
-                                price=float(order.get("price", 0.0)),
-                                size=float(order.get("size", 0.0)),
-                                filled=float(order.get("filled", 0.0)),
-                                status=str(order.get("status", "PENDING")),
-                            )
-                        )
-                
-                return parsed_orders
-            except httpx.HTTPError as e:
-                error_msg = str(e)
-                if hasattr(e, "response") and e.response is not None:
-                    try:
-                        error_detail = e.response.json()
-                        error_msg = f"{error_msg} - {error_detail}"
-                    except Exception:
-                        error_msg = f"{error_msg} - Status: {e.response.status_code}"
-                raise PolymarketClientError(f"Failed to fetch orders with readonly API key: {error_msg}") from e
-            except Exception as e:
-                raise PolymarketClientError(f"Failed to get orders with readonly API key: {e}") from e
-        
-        # Use standard authentication (requires private_key)
         if self._is_read_only:
-            raise PolymarketClientError("Cannot get orders: client is read-only. Provide private_key or readonly_api_key+address to enable order queries.")
+            raise PolymarketClientError("Cannot get orders: client is read-only. Provide private_key to enable write operations.")
 
         try:
-            # Ensure API credentials are set (required for Level 2 authentication)
-            self._ensure_api_creds()
+            # Set API credentials (required for Level 2 authentication)
+            # get_orders() requires API credentials, not just private key
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for get_orders: {e}") from e
             
-            # Get orders using OpenOrderParams from py-clob-client
-            if params is not None:
-                # Use provided OpenOrderParams directly (matches py-clob-client API)
-                orders = self._clob_client.get_orders(params)
-            elif OpenOrderParams is not None and (market_id or maker_address):
-                # Create OpenOrderParams from market_id/maker_address if available
-                open_params = OpenOrderParams()
-                if market_id:
-                    # OpenOrderParams uses 'market' field (condition ID)
-                    if hasattr(open_params, 'market'):
-                        open_params.market = market_id
-                    elif hasattr(open_params, 'market_id'):
-                        open_params.market_id = market_id
-                if maker_address:
-                    if hasattr(open_params, 'maker_address'):
-                        open_params.maker_address = maker_address
-                orders = self._clob_client.get_orders(open_params)
-            elif OpenOrderParams is None:
-                # Fallback: use simple get_orders call if OpenOrderParams is not available
-                if market_id:
-                    orders = self._clob_client.get_orders(market_id=market_id)
-                else:
-                    orders = self._clob_client.get_orders()
+            # Get all orders or filter by market
+            if market_id:
+                orders = self._clob_client.get_orders(market_id=market_id)
             else:
-                # No params provided, call get_orders() without arguments
                 orders = self._clob_client.get_orders()
 
             if not isinstance(orders, list):
@@ -3356,21 +2604,10 @@ class PolymarketClient(BaseMarketClient):
         except Exception as e:
             raise PolymarketClientError(f"Failed to merge orders: {e}") from e
 
-    def get_balance_allowance(
-        self,
-        params: Any | None = None,  # BalanceAllowanceParams from py-clob-client
-    ) -> dict[str, Any]:
+    def get_balance_allowance(self) -> dict[str, Any]:
         """Get balance and allowance information for the wallet address.
         
-        Reference: py-clob-client get_balance_allowance() method.
-        
-        Can be called with BalanceAllowanceParams (matching py-clob-client API):
-        - client.get_balance_allowance(params=BalanceAllowanceParams(asset_type=AssetType.COLLATERAL))
-        - client.get_balance_allowance(params=BalanceAllowanceParams(asset_type=AssetType.CONDITIONAL, token_id="..."))
-        
-        Args:
-            params: Optional BalanceAllowanceParams object specifying asset_type and optional token_id.
-                If None, returns balance for the wallet address (legacy behavior).
+        Uses the CLOB API endpoint: /balance-allowance
         
         Returns:
             Dictionary with balance and allowance information.
@@ -3382,25 +2619,13 @@ class PolymarketClient(BaseMarketClient):
         if self._is_read_only:
             raise PolymarketClientError("Cannot get balance: client is read-only. Provide private_key to enable authenticated operations.")
         
+        if httpx is None:
+            raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
+        
         try:
-            # Ensure API credentials are set (required for authenticated endpoints)
-            self._ensure_api_creds()
-            
-            # Try to use py-clob-client's get_balance_allowance() method if available
-            if hasattr(self._clob_client, "get_balance_allowance"):
-                try:
-                    if params is not None:
-                        return self._clob_client.get_balance_allowance(params=params)
-                    else:
-                        # Fallback to legacy behavior if no params provided
-                        return self._clob_client.get_balance_allowance()
-                except Exception as e:
-                    # Fall through to HTTP implementation if py-clob-client method fails
-                    pass
-            
-            # Fallback: Direct HTTP call if py-clob-client doesn't have get_balance_allowance() or it failed
-            if httpx is None:
-                raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
+            # Set API credentials first (required for authenticated endpoints)
+            api_creds = self._clob_client.create_or_derive_api_creds()
+            self._clob_client.set_api_creds(api_creds)
             
             # Get wallet address from private key
             from eth_account import Account
@@ -3409,20 +2634,7 @@ class PolymarketClient(BaseMarketClient):
             
             # Call the balance-allowance endpoint
             url = f"{self._base_url}/balance-allowance"
-            query_params: dict[str, Any] = {"address": wallet_address}
-            
-            # Add params if provided
-            if params is not None and BalanceAllowanceParams is not None:
-                if hasattr(params, "asset_type"):
-                    # Convert AssetType enum to string if needed
-                    asset_type = params.asset_type
-                    if hasattr(asset_type, "value"):
-                        asset_type = asset_type.value
-                    elif hasattr(asset_type, "name"):
-                        asset_type = asset_type.name
-                    query_params["asset_type"] = str(asset_type)
-                if hasattr(params, "token_id") and params.token_id is not None:
-                    query_params["token_id"] = str(params.token_id)
+            params = {"address": wallet_address}
             
             # Get auth headers from clob client if available
             headers = {"accept": "application/json"}
@@ -3434,7 +2646,7 @@ class PolymarketClient(BaseMarketClient):
                 headers.update(auth_headers)
             
             with httpx.Client(timeout=self._timeout) as client:
-                response = client.get(url, params=query_params, headers=headers)
+                response = client.get(url, params=params, headers=headers)
                 response.raise_for_status()
                 return response.json()
         except httpx.HTTPError as e:
@@ -3990,8 +3202,12 @@ class PolymarketClient(BaseMarketClient):
             raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
 
         try:
-            # Ensure API credentials are set (required for L2 Header)
-            self._ensure_api_creds()
+            # Set API credentials (required for L2 Header)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for get_trades: {e}") from e
             
             # Get trades from CLOB API
             # Reference: GET /<clob-endpoint>/data/trades
@@ -4045,73 +3261,6 @@ class PolymarketClient(BaseMarketClient):
             raise
         except Exception as e:
             raise PolymarketClientError(f"Failed to get trades: {e}") from e
-
-    def get_clob_trades(self) -> list[dict[str, Any]]:
-        """Get trades from the CLOB API using py-clob-client's get_trades() method.
-        
-        This is a simpler wrapper around py-clob-client's get_trades() that doesn't require
-        parameters. For more advanced filtering, use get_trades() with GetTradesParams.
-        
-        Reference: py-clob-client get_trades() method.
-        
-        Returns:
-            List of trade dictionaries from the CLOB API.
-        
-        Raises:
-            PolymarketClientError: When fetching trades fails.
-            ValueError: If client is read-only.
-        """
-        if self._is_read_only:
-            raise PolymarketClientError("Cannot get CLOB trades: client is read-only. Provide private_key to enable authenticated operations.")
-        
-        try:
-            self._ensure_api_creds()
-            return self._clob_client.get_trades()
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to get CLOB trades: {e}") from e
-
-    def get_builder_trades(
-        self,
-        params: Any | None = None,  # TradeParams from py-clob-client
-    ) -> list[dict[str, Any]]:
-        """Get builder trades from the CLOB API.
-        
-        Reference: py-clob-client get_builder_trades() method.
-        
-        Retrieves trades executed through the builder system. Requires builder_config
-        to be set during client initialization.
-        
-        Args:
-            params: Optional TradeParams object for filtering builder trades.
-                If None, returns all builder trades.
-        
-        Returns:
-            List of builder trade dictionaries from the CLOB API.
-        
-        Raises:
-            PolymarketClientError: When fetching builder trades fails.
-            ValueError: If client is read-only or builder_config is not set.
-        """
-        if self._is_read_only:
-            raise PolymarketClientError("Cannot get builder trades: client is read-only. Provide private_key to enable authenticated operations.")
-        
-        if self._builder_config is None:
-            raise PolymarketClientError("builder_config is required for get_builder_trades(). Provide builder_config during client initialization.")
-        
-        try:
-            # Ensure API credentials are set
-            self._ensure_api_creds()
-            
-            # Use py-clob-client's get_builder_trades() method
-            if hasattr(self._clob_client, "get_builder_trades"):
-                if params is not None:
-                    return self._clob_client.get_builder_trades(params=params)
-                else:
-                    return self._clob_client.get_builder_trades()
-            else:
-                raise PolymarketClientError("get_builder_trades() method not available in py-clob-client. Ensure you have the latest version.")
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to get builder trades: {e}") from e
 
     def get_trade(self, trade_id: str) -> Trade | None:
         """Get a single trade by ID.
@@ -4215,88 +3364,6 @@ class PolymarketClient(BaseMarketClient):
                 reconciled.append(reconciled_trade)
         
         return reconciled
-
-    def create_api_key(self) -> dict[str, Any]:
-        """Create a new API key.
-        
-        Reference: py-clob-client create_api_key() method.
-        
-        Creates a new API key for the authenticated wallet. This is useful when you need
-        to generate fresh API credentials.
-        
-        Returns:
-            Dictionary with the created API key information (structure depends on py-clob-client).
-            
-        Raises:
-            PolymarketClientError: When API key creation fails.
-            ValueError: If client is read-only.
-        """
-        if self._is_read_only:
-            raise PolymarketClientError("Cannot create API key: client is read-only. Provide private_key to enable authentication.")
-        
-        try:
-            # Use py-clob-client's create_api_key() method
-            if hasattr(self._clob_client, "create_api_key"):
-                return self._clob_client.create_api_key()
-            else:
-                raise PolymarketClientError("create_api_key() method not available in py-clob-client. Ensure you have the latest version.")
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to create API key: {e}") from e
-
-    def create_readonly_api_key(self) -> dict[str, Any]:
-        """Create a new read-only API key.
-        
-        Reference: py-clob-client create_readonly_api_key() method.
-        
-        Creates a new read-only API key for the authenticated wallet. Read-only API keys
-        can be used for querying data but cannot be used for placing orders or other write operations.
-        
-        Returns:
-            Dictionary with the created read-only API key information (structure depends on py-clob-client).
-            
-        Raises:
-            PolymarketClientError: When API key creation fails.
-            ValueError: If client is read-only.
-        """
-        if self._is_read_only:
-            raise PolymarketClientError("Cannot create read-only API key: client is read-only. Provide private_key to enable authentication.")
-        
-        try:
-            # Use py-clob-client's create_readonly_api_key() method
-            if hasattr(self._clob_client, "create_readonly_api_key"):
-                return self._clob_client.create_readonly_api_key()
-            else:
-                raise PolymarketClientError("create_readonly_api_key() method not available in py-clob-client. Ensure you have the latest version.")
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to create read-only API key: {e}") from e
-
-    def derive_api_key(self) -> dict[str, Any]:
-        """Derive API key from the wallet's private key.
-        
-        Reference: py-clob-client derive_api_key() method.
-        
-        Derives an API key deterministically from the wallet's private key. This is useful
-        when you need to get the API credentials that correspond to your wallet without
-        creating a new key.
-        
-        Returns:
-            Dictionary with the derived API key information (structure depends on py-clob-client).
-            
-        Raises:
-            PolymarketClientError: When API key derivation fails.
-            ValueError: If client is read-only.
-        """
-        if self._is_read_only:
-            raise PolymarketClientError("Cannot derive API key: client is read-only. Provide private_key to enable authentication.")
-        
-        try:
-            # Use py-clob-client's derive_api_key() method
-            if hasattr(self._clob_client, "derive_api_key"):
-                return self._clob_client.derive_api_key()
-            else:
-                raise PolymarketClientError("derive_api_key() method not available in py-clob-client. Ensure you have the latest version.")
-        except Exception as e:
-            raise PolymarketClientError(f"Failed to derive API key: {e}") from e
 
     def get_api_credentials(self) -> dict[str, str]:
         """Get API credentials for WebSocket authentication.
@@ -4410,4 +3477,3 @@ __all__ = [
     "PolymarketClientError",
     "Tag",
 ]
-

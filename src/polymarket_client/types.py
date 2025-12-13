@@ -2690,4 +2690,3 @@ __all__ = [
     "WebSocketPriceChangeMessage",
     "WebSocketTickSizeChangeMessage",
 ]
-

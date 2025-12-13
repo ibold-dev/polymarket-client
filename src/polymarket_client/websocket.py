@@ -247,7 +247,7 @@ class PolymarketWebSocketClient:
         def on_open(ws: WebSocketApp) -> None:
             # Send subscription message
             subscription = {
-                "asset_ids": asset_ids,  # Note: API expects "asset_ids" (singular "asset")
+                "assets_ids": asset_ids,
                 "type": self.MARKET_CHANNEL.upper(),
             }
             ws.send(json.dumps(subscription))
@@ -458,4 +458,3 @@ class PolymarketWebSocketClient:
             True if user channel is connected, False otherwise.
         """
         return self._user_ws is not None
-

@@ -151,4 +151,3 @@ __all__ = [
     "WebSocketTradeMessage",
     "WebSocketUserMessage",
 ]
-
