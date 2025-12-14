@@ -1402,18 +1402,37 @@ class PolymarketClient(BaseMarketClient):
         Raises:
             PolymarketClientError: When fetching positions fails.
         """
+        if self._is_read_only:
+            raise PolymarketClientError("Cannot get positions: client is read-only. Provide private_key to enable authenticated operations.")
+
         if httpx is None:
             raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
 
         try:
+            # Set API credentials (required for L2 Header)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for get_positions: {e}") from e
+            
             url = "https://data-api.polymarket.com/positions"
             query_params = params.to_query_params()
+            
+            # Get auth headers from clob client if available
+            headers = {"accept": "application/json"}
+            if hasattr(self._clob_client, "get_auth_headers"):
+                auth_headers = self._clob_client.get_auth_headers()
+                headers.update(auth_headers)
+            elif hasattr(self._clob_client, "_get_headers"):
+                auth_headers = self._clob_client._get_headers()
+                headers.update(auth_headers)
             
             with httpx.Client(timeout=self._timeout) as client:
                 response = client.get(
                     url,
                     params=query_params,
-                    headers={"accept": "application/json"},
+                    headers=headers,
                 )
                 response.raise_for_status()
                 raw_positions = response.json()
@@ -1587,18 +1606,37 @@ class PolymarketClient(BaseMarketClient):
         Raises:
             PolymarketClientError: When fetching total value fails.
         """
+        if self._is_read_only:
+            raise PolymarketClientError("Cannot get total value: client is read-only. Provide private_key to enable authenticated operations.")
+
         if httpx is None:
             raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
 
         try:
+            # Set API credentials (required for L2 Header)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for get_total_value: {e}") from e
+            
             url = "https://data-api.polymarket.com/positions/total-value"
             query_params = params.to_query_params()
+            
+            # Get auth headers from clob client if available
+            headers = {"accept": "application/json"}
+            if hasattr(self._clob_client, "get_auth_headers"):
+                auth_headers = self._clob_client.get_auth_headers()
+                headers.update(auth_headers)
+            elif hasattr(self._clob_client, "_get_headers"):
+                auth_headers = self._clob_client._get_headers()
+                headers.update(auth_headers)
             
             with httpx.Client(timeout=self._timeout) as client:
                 response = client.get(
                     url,
                     params=query_params,
-                    headers={"accept": "application/json"},
+                    headers=headers,
                 )
                 response.raise_for_status()
                 raw_value = response.json()
@@ -1626,18 +1664,37 @@ class PolymarketClient(BaseMarketClient):
         Raises:
             PolymarketClientError: When fetching closed positions fails.
         """
+        if self._is_read_only:
+            raise PolymarketClientError("Cannot get closed positions: client is read-only. Provide private_key to enable authenticated operations.")
+
         if httpx is None:
             raise PolymarketClientError("httpx library is required. Install it with: pip install httpx")
 
         try:
+            # Set API credentials (required for L2 Header)
+            try:
+                api_creds = self._clob_client.create_or_derive_api_creds()
+                self._clob_client.set_api_creds(api_creds)
+            except Exception as e:
+                raise PolymarketClientError(f"Failed to set API credentials for get_closed_positions: {e}") from e
+            
             url = "https://data-api.polymarket.com/positions/closed"
             query_params = params.to_query_params()
+            
+            # Get auth headers from clob client if available
+            headers = {"accept": "application/json"}
+            if hasattr(self._clob_client, "get_auth_headers"):
+                auth_headers = self._clob_client.get_auth_headers()
+                headers.update(auth_headers)
+            elif hasattr(self._clob_client, "_get_headers"):
+                auth_headers = self._clob_client._get_headers()
+                headers.update(auth_headers)
             
             with httpx.Client(timeout=self._timeout) as client:
                 response = client.get(
                     url,
                     params=query_params,
-                    headers={"accept": "application/json"},
+                    headers=headers,
                 )
                 response.raise_for_status()
                 raw_positions = response.json()
